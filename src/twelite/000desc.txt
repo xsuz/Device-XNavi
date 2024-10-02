@@ -1,0 +1,3 @@
+[JAPANESE]
+TITLE=Peripheral
+DESC=センサから受け取ったデータをメイン基板へ送信するサンプルプログラム 

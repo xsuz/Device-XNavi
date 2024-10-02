@@ -1,0 +1,4 @@
+(fp_lib_table
+  (version 7)
+  (lib (name "AIOLIA")(type "KiCad")(uri "${KIPRJMOD}/../Alib/AIOLIA.pretty")(options "")(descr ""))
+)

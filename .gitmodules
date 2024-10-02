@@ -1,0 +1,6 @@
+[submodule "circuit/Alib"]
+	path = circuit/Alib
+	url = https://github.com/xsuz/Alib
+[submodule "src/twelite/TweliteLibrary"]
+	path = src/twelite/TweliteLibrary
+	url = https://github.com/xsuz/TweliteLibrary
