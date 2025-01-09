@@ -1,4 +1,4 @@
-23696929400645222
+23700399748390777
 AIOLIA
 AIOLIA
 
@@ -6,6 +6,13 @@ AIOLIA
 0
 0
 0
+AIOLIA
+CONN14_3220-14_CNC
+
+3220-14-0100-00 
+0
+14
+14
 AIOLIA
 RJ45
 LANコネクタ
@@ -18,8 +25,15 @@ SOT95P280X130-5N
 
 
 0
+5
+5
+AIOLIA
+SW_Slide
+
+
 0
-0
+6
+6
 Audio_Module
 Reverb_BTDR-1H
 Digital Reverberation Unit, http://www.belton.co.kr/inc/downfile.php?seq=17&file=pdf (footprint from http://www.uk-electronic.de/PDF/BTDR-1.pdf)
