@@ -7582,28 +7582,6 @@
 			)
 		)
 	)
-	(global_label "TX1"
-		(shape input)
-		(at 334.01 83.82 180)
-		(fields_autoplaced yes)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify right)
-		)
-		(uuid "19c80d40-14b0-4c4a-a5f6-b6de56c9ddb4")
-		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 327.6382 83.82 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify right)
-				(hide yes)
-			)
-		)
-	)
 	(global_label "CAN_RX"
 		(shape input)
 		(at 63.5 226.06 0)
@@ -7694,7 +7672,7 @@
 	)
 	(global_label "RX1"
 		(shape output)
-		(at 334.01 81.28 180)
+		(at 334.01 83.82 180)
 		(fields_autoplaced yes)
 		(effects
 			(font
@@ -7704,7 +7682,7 @@
 		)
 		(uuid "2f0e4698-b99f-40d3-8816-eb97ce1cd6f8")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 327.3358 81.28 0)
+			(at 327.3358 83.82 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -7952,6 +7930,28 @@
 					(size 1.27 1.27)
 				)
 				(justify left)
+				(hide yes)
+			)
+		)
+	)
+	(global_label "TX1"
+		(shape input)
+		(at 334.01 81.28 180)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "758c9134-5823-42bf-8138-228790004d8f")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 327.6382 81.28 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
 				(hide yes)
 			)
 		)
