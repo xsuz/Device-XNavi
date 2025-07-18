@@ -9,40 +9,52 @@
 #include "byte_utils.h"
 #include "sd_logger.h"
 
+#include <SEGGER_RTT.h>
+
 #include <ASM330LHHSensor.h>
 #include <SPI.h>
 
 namespace imu
 {
-    ASM330LHHSensor asm330lhh(&SPI1, 13, 1000000); // SPI1, CS pin 13, SPI speed 1MHz
+    constexpr int SPI1_CS=13,
+                  SPI1_RX=12,
+                  SPI1_SCK=14,
+                  SPI1_TX=15;
+    ASM330LHHSensor asm330lhh(&SPI1, SPI1_CS, 1000000); // SPI1, CS pin 13, SPI speed 1MHz
     float quat[4] = {1.0f, 0.0f, 0.0f, 0.0f};
     constexpr float deg2rad = M_PI / 180.0f;
     constexpr int LED = 11;
     void task(void *pvParam)
     {
+        SEGGER_RTT_WriteString(0, "IMU task started.\n");
+
+        SEGGER_RTT_printf(0, "Initializing SPI1 with RX: %d, CS: %d, SCK: %d, TX: %d\n", SPI1_RX, SPI1_CS, SPI1_SCK, SPI1_TX);
         // IMU setup
-        SPI1.setRX(12);
-        SPI1.setCS(13);
-        SPI1.setSCK(14);
-        SPI1.setTX(15);
+        SPI1.setRX(SPI1_RX);
+        SPI1.setCS(SPI1_CS);
+        SPI1.setSCK(SPI1_SCK);
+        SPI1.setTX(SPI1_TX);
         SPI1.begin();
+        SEGGER_RTT_WriteString(0, "SPI1 initialized.\n");
         pinMode(LED,OUTPUT);
         digitalWrite(LED, LOW);
         
         if(asm330lhh.begin()==ASM330LHH_OK)
         {
-            Serial.println("ASM330LHH initialized successfully");
+            SEGGER_RTT_WriteString(0, "ASM330LHH initialized successfully\n");
         }
         else
         {
-            Serial.println("Failed to initialize ASM330LHH");
+            SEGGER_RTT_WriteString(0, "Failed to initialize ASM330LHH\n");
             while(1); // Halt if initialization fails
         }
         asm330lhh.Enable_X();
         asm330lhh.Enable_G();
 
+        SEGGER_RTT_WriteString(0, "ASM330LHH enabled for accelerometer and gyroscope.\n");
         auto timerIMU = xTimerCreate("imu", 10, pdTRUE, 0, imu::timer_callback);
         xTimerStart(timerIMU, 0);
+        SEGGER_RTT_WriteString(0, "IMU timer started.\n");
         while (1)
         {
             vTaskDelay(100000);

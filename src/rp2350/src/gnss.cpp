@@ -10,6 +10,7 @@
 // #include <ctime>
 
 #include <ubx.h>
+#include <SEGGER_RTT.h>
 
 namespace gnss
 {
@@ -32,6 +33,7 @@ namespace gnss
 
     void task(void *pvParam)
     {
+        SEGGER_RTT_WriteString(0, "GNSS task started.\n");
         // UART0を初期化
         Serial1.setFIFOSize(2048);
         Serial1.begin(9600);
@@ -57,9 +59,8 @@ namespace gnss
         gpio_set_dir(2, GPIO_IN);
         gpio_set_irq_enabled_with_callback(2, GPIO_IRQ_EDGE_RISE, true, &pps_callback);
 
-        //
-        auto timerIMU = xTimerCreate("imu", 100, pdTRUE, 0, timer_callback);
-        xTimerStart(timerIMU, 0);
+        auto timerGNSS = xTimerCreate("gnss", 100, pdTRUE, 0, timer_callback);
+        xTimerStart(timerGNSS, 0);
 
         while (1)
         {
@@ -85,7 +86,7 @@ namespace gnss
             GPSData data;
             uint8_t bytes[sizeof(data)];
         } spkt;
-        if (ubx_parser.get_nav_pvt().valid.all)
+        if (ubx_parser.get_nav_pvt().fixType>=2)
         {
             spkt.data.id = 0x60;
             spkt.data.latitude = ubx_parser.get_nav_pvt().lat;
@@ -110,6 +111,11 @@ namespace gnss
             swap32<uint32_t>(&spkt.data.hAcc);
             swap32<uint32_t>(&spkt.data.vAcc);
 
+            SEGGER_RTT_printf(0, "GNSS Data: Lat: %d, Lon: %d, Alt: %d, VelN: %d, VelE: %d, VelD: %d, hAcc: %u, vAcc: %u, FixType: %u, pDOP: %u\n",
+                spkt.data.latitude, spkt.data.longitude, spkt.data.altitude,
+                spkt.data.velN, spkt.data.velE, spkt.data.velD,
+                spkt.data.hAcc, spkt.data.vAcc,
+                spkt.data.fixType, spkt.data.pDOP);
             sd_logger::write_pkt(spkt.bytes, sizeof(spkt.bytes));
         }
     }

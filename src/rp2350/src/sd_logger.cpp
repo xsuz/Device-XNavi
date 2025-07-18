@@ -1,15 +1,13 @@
 #include "sd_logger.h"
-
 #include "byte_utils.h"
 
 #include <FreeRTOS.h>
 #include <task.h>
 #include <semphr.h>
-
 #include <Arduino.h>
-#include "ff.h"
 
-#include "gnss.h"
+#include <ff.h>
+#include <SEGGER_RTT.h>
 
 namespace sd_logger
 {
@@ -52,6 +50,7 @@ namespace sd_logger
             digitalWrite(LED, LOW);
             vTaskDelay(500);
         }
+        SEGGER_RTT_printf(0, "SD card mounted successfully.\n");
         digitalWrite(LED, LOW);
 
         while (sd_logger::offset == 0)
@@ -59,9 +58,18 @@ namespace sd_logger
             vTaskDelay(1000);
         }
 
+        SEGGER_RTT_printf(0, "Timestamp offset set to %lld ms.\n", sd_logger::offset+ millis());
         get_filename(filename, sd_logger::offset + millis());
 
-        res = f_open(&fil, filename, FA_WRITE | FA_CREATE_ALWAYS);
+        while((res = f_open(&fil, filename, FA_WRITE | FA_CREATE_ALWAYS)) != FR_OK)
+        {
+            SEGGER_RTT_printf(0, "Failed to open file %s, retrying...\n", filename);
+            digitalWrite(LED, HIGH);
+            vTaskDelay(500);
+            digitalWrite(LED, LOW);
+            vTaskDelay(500);
+        }
+        SEGGER_RTT_printf(0, "File %s opened successfully.\n", filename);
         f_sync(&fil);
         while (1)
         {

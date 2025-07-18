@@ -1,9 +1,12 @@
-#include "twelite.h"
 #include <FreeRTOS.h>
 #include <task.h>
 #include <Arduino.h>
 #include <PacketSerial.h>
+
+#include "twelite.h"
 #include "sd_logger.h"
+
+#include <SEGGER_RTT.h>
 
 namespace twelite
 {
@@ -11,17 +14,22 @@ namespace twelite
 
     void onPacketReceived(const uint8_t *buffer, size_t size)
     {
+        SEGGER_RTT_WriteString(0, "Packet received from TWELITE.\n");
+        SEGGER_RTT_printf(0, "Received packet size: %zu bytes\n", size);
         sd_logger::write_pkt(buffer, size);
     }
 
     void task(void *pvParam)
     {
+        SEGGER_RTT_WriteString(0, "TWELITE task started.\n");
         // TWELITEのUARTを初期化
+        SEGGER_RTT_printf(0, "Initializing Serial2 with RX: %d, TX: %d\n", 9, 8);
         Serial2.setRX(9);
         Serial2.setTX(8);
         Serial2.begin(115200);
         ps.setStream(&Serial2);
         ps.setPacketHandler(&onPacketReceived);
+        SEGGER_RTT_WriteString(0, "TWELITE Serial2 initialized.\n");
 
         // TWELITEからのデータ受信ループ
         while (true)
