@@ -1,0 +1,21 @@
+{
+    "configurations": [
+        {
+            "name": "STM32",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/**/**"
+            ],
+            "defines": [
+                "USE_HAL_DRIVER",
+                "STM32G441xx",
+                "__weak=__attribute__((weak))"
+            ],
+            "compilerPath": "arm-none-eabi-gcc",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "clang-x64"
+        }
+    ],
+    "version": 4
+}
