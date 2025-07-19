@@ -45,6 +45,7 @@ namespace sd_logger
 
         while ((res = f_mount(&fs, "/", 0)) != FR_OK)
         {
+            SEGGER_RTT_printf(0, "Failed to mount SD card, retrying...\n");
             digitalWrite(LED, HIGH);
             vTaskDelay(500);
             digitalWrite(LED, LOW);

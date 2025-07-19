@@ -14,8 +14,11 @@ namespace twelite
 
     void onPacketReceived(const uint8_t *buffer, size_t size)
     {
-        SEGGER_RTT_WriteString(0, "Packet received from TWELITE.\n");
-        SEGGER_RTT_printf(0, "Received packet size: %zu bytes\n", size);
+        SEGGER_RTT_printf(0, "Received packet size: %d bytes : [ ", size);
+        for(int i=0;i<size;i++){
+            SEGGER_RTT_printf(0,"%02x ",buffer[i]);
+        }
+        SEGGER_RTT_printf(0," ]\n");
         sd_logger::write_pkt(buffer, size);
     }
 

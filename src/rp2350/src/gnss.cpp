@@ -86,9 +86,9 @@ namespace gnss
             GPSData data;
             uint8_t bytes[sizeof(data)];
         } spkt;
-        if (ubx_parser.get_nav_pvt().fixType>=2)
+        if (ubx_parser.get_nav_pvt().fixType>=2 && ubx_parser.get_nav_pvt().valid.bits.validTime && ubx_parser.get_nav_pvt().valid.bits.validDate && ubx_parser.age()<200)
         {
-            spkt.data.id = 0x60;
+            spkt.data.id = SensorType::GPS;
             spkt.data.latitude = ubx_parser.get_nav_pvt().lat;
             spkt.data.longitude = ubx_parser.get_nav_pvt().lon;
             spkt.data.altitude = ubx_parser.get_nav_pvt().height;
@@ -101,6 +101,14 @@ namespace gnss
             spkt.data.fixType = ubx_parser.get_nav_pvt().fixType;
             spkt.data.pDOP = ubx_parser.get_nav_pvt().pDOP;
             spkt.data.flags =ubx_parser.get_nav_pvt().flags.all;
+            
+            SEGGER_RTT_printf(0, "GNSS Data: Lat: %d, Lon: %d, Alt: %d, VelN: %d, VelE: %d, VelD: %d, hAcc: %u, vAcc: %u, FixType: %u, pDOP: %u\n",
+                spkt.data.latitude, spkt.data.longitude, spkt.data.altitude,
+                spkt.data.velN, spkt.data.velE, spkt.data.velD,
+                spkt.data.hAcc, spkt.data.vAcc,
+                spkt.data.fixType, spkt.data.pDOP);
+
+            // バイトオーダーを変換
             swap32<int32_t>(&spkt.data.latitude);
             swap32<int32_t>(&spkt.data.longitude);
             swap32<int32_t>(&spkt.data.altitude);
@@ -110,12 +118,8 @@ namespace gnss
             swap32<uint32_t>(&spkt.data.timestamp);
             swap32<uint32_t>(&spkt.data.hAcc);
             swap32<uint32_t>(&spkt.data.vAcc);
+            swap16<uint16_t>(&spkt.data.pDOP);
 
-            SEGGER_RTT_printf(0, "GNSS Data: Lat: %d, Lon: %d, Alt: %d, VelN: %d, VelE: %d, VelD: %d, hAcc: %u, vAcc: %u, FixType: %u, pDOP: %u\n",
-                spkt.data.latitude, spkt.data.longitude, spkt.data.altitude,
-                spkt.data.velN, spkt.data.velE, spkt.data.velD,
-                spkt.data.hAcc, spkt.data.vAcc,
-                spkt.data.fixType, spkt.data.pDOP);
             sd_logger::write_pkt(spkt.bytes, sizeof(spkt.bytes));
         }
     }

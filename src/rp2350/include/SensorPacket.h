@@ -2,11 +2,17 @@
 
 #include<stdint.h>
 
+enum SensorType{
+    GPS = 0x60, // GPSデータ
+    IMU = 0x40, // IMUデータ
+    Attitude = 0xA0, // 姿勢データ
+};
+
 /// @brief GPSのDeviceData
 /// @note 先頭はid
 struct GPSData {
   /// @brief デバイス識別子
-  uint8_t id;
+  uint32_t id;
   /// @brief 時刻
   uint32_t timestamp;
   int32_t latitude;	  // Latitude: deg * 1e-7
@@ -29,7 +35,7 @@ struct GPSData {
 /// @note 先頭はid
 struct IMUData {
   /// @brief デバイス識別子
-  uint8_t id;
+  uint32_t id;
   /// @brief 時刻
   uint32_t timestamp;
   /// @brief 加速度 x
@@ -44,18 +50,19 @@ struct IMUData {
   float w_y;
   /// @brief 角速度 z
   float w_z;
-  /// @brief 地磁気 x
-  float m_x;
-  /// @brief 地磁気 y
-  float m_y;
-  /// @brief 地磁気 z
-  float m_z;
-  ///@brief q0
+};
+
+struct AttitudeData {
+  /// @brief デバイス識別子
+  uint32_t id;
+  /// @brief 時刻
+  uint32_t timestamp;
+  /// @brief Quaternion w
   float q0;
-  ///@brief q1
+  /// \brief Quaternion x
   float q1;
-  ///@brief q2
+  /// @brief Quaternion y
   float q2;
-  ///@brief q3
+  /// @brief Quaternion z
   float q3;
 };

@@ -3,7 +3,7 @@
 
 namespace madgwick
 {
-    constexpr float deltat = 0.020f;
+    constexpr float deltat = 0.010f;
     constexpr float gyroMeasError = M_PI * (5.0f / 180.0f);
     constexpr float beta = 0.866f * gyroMeasError;
     constexpr float gyroMeasDrift = M_PI * (0.2f / 180.0f);

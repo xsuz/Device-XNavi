@@ -2,6 +2,18 @@
 
 #include <stdint.h>
 
+/// @brief 16bit変数のバイトオーダーを変換
+/// @tparam T 変換する変数の型
+template<typename T>
+void swap16(T *val) {
+  uint8_t *u8 = (uint8_t *)val;
+  uint8_t tmp;
+  // swap the bytes into a temporary buffer
+  tmp = u8[0];
+  u8[0] = u8[1];
+  u8[1] = tmp;
+}
+
 /// @brief 32bit変数のバイトオーダーを変換
 /// @tparam T 変換する変数の型
 /// @param val 変数のポインタ
