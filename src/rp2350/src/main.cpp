@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <FreeRTOS.h>
 #include <task.h>
+#include <map>
 
 #include <SEGGER_RTT.h>
 
@@ -18,12 +19,11 @@ void setup()
 {
     // put your setup code here, to run once:
     SEGGER_RTT_Init();
-    Serial.begin(115200);
 
-    xTaskCreate(gnss::task,"gps_task",512,NULL,3,&Task1);
-    xTaskCreate(imu::task,"imu_task",2048,NULL,4,&Task2);
-    xTaskCreate(sd_logger::task,"sd_buf_task",1024,NULL,1,&Task3);
-    xTaskCreate(twelite::task,"twelite_task",256,NULL,2,&Task4);
+    xTaskCreate(gnss::task,"gps",512,NULL,3,&Task1);
+    xTaskCreate(imu::task,"imu",256,NULL,1,&Task2);
+    xTaskCreate(sd_logger::task,"sd",1024,NULL,1,&Task3);
+    xTaskCreate(twelite::task,"twelite",256,NULL,2,&Task4);
     vTaskStartScheduler();
 }
 
@@ -32,6 +32,8 @@ void loop()
     // put your main code here, to run repeatedly:
 }
 
+std::map<eTaskState, const char *> eTaskStateName { {eReady, "Ready"}, { eRunning, "Running" }, {eBlocked, "Blocked"}, {eSuspended, "Suspended"}, {eDeleted, "Deleted"} };
+
 void setup1(){
     
     // TWELITEのUARTを初期化
@@ -39,8 +41,17 @@ void setup1(){
 }
 
 void loop1(){
+    int tasks = uxTaskGetNumberOfTasks();
+    unsigned long runtime;
+    TaskStatus_t *pxTaskStatusArray= (TaskStatus_t *) pvPortMalloc(tasks * sizeof(TaskStatus_t));
+    tasks = uxTaskGetSystemState(pxTaskStatusArray, tasks, &runtime);
+    SEGGER_RTT_printf(0,"Tasks: %d\n",tasks);
+    for(int i=0;i<tasks;i++){
+        SEGGER_RTT_printf(0,"    %d: %-20s %-10s %d %lu\n", i, pxTaskStatusArray[i].pcTaskName, eTaskStateName[pxTaskStatusArray[i].eCurrentState], (int)pxTaskStatusArray[i].uxCurrentPriority, pxTaskStatusArray[i].ulRunTimeCounter);
+    }
+    vPortFree(pxTaskStatusArray);
     digitalWrite(LED_BUILTIN, HIGH);
-    delay(1000);
+    vTaskDelay(500 / portTICK_PERIOD_MS);
     digitalWrite(LED_BUILTIN, LOW);
-    delay(1000);
+    vTaskDelay(500 / portTICK_PERIOD_MS);
 }

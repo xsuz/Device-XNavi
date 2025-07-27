@@ -1,11 +1,13 @@
 #include <FreeRTOS.h>
 #include <task.h>
 #include <timers.h>
+#include <queue.h>
 
 #include "gnss.h"
 #include "SensorPacket.h"
 #include "byte_utils.h"
 #include "sd_logger.h"
+#include "clock.h"
 
 // #include <ctime>
 
@@ -17,18 +19,46 @@ namespace gnss
     /// @brief u-blox UBXパーサー
     ubx::parser ubx_parser;
     // std::tm timeinfo;
-    int64_t t = 0;
-    int64_t offset = 0;
+    volatile uint32_t tick_last_pps = 0;
+    uint32_t last_commit_tick = 0;
+    QueueHandle_t gnssQueue;
+    QueueHandle_t utcQueue;
 
     void pps_callback(uint gpio, uint32_t emask)
     {
         gpio_set_irq_enabled(gpio, (GPIO_IRQ_EDGE_RISE), false);
-        if (ubx_parser.get_nav_pvt().valid.bits.validTime && ubx_parser.get_nav_pvt().valid.bits.validDate && ubx_parser.age()<1000)
-        {
-            sd_logger::set_timestamp_offset(ubx_parser.get_nav_pvt().year, ubx_parser.get_nav_pvt().month, ubx_parser.get_nav_pvt().day, ubx_parser.get_nav_pvt().hour, ubx_parser.get_nav_pvt().min, ubx_parser.get_nav_pvt().sec);
-            // sd_logger::set_timestamp_offset(((((gps.time.hour() + 9) % 24) * 60 + gps.time.minute()) * 60 + gps.time.second() + 1) * 1000 - millis());
-        }
+        tick_last_pps = millis();
         gpio_set_irq_enabled(gpio, (GPIO_IRQ_EDGE_RISE), true);
+    }
+
+    void pvt_callback(ubx::NAV_PVT pvt)
+    {
+        GPSData data;
+        if (pvt.valid.bits.validDate && pvt.valid.bits.validTime && tick_last_pps > 0)
+        {
+            sys_clock::set_timestamp_offset(tick_last_pps, pvt.year, pvt.month, pvt.day, pvt.hour, pvt.min, pvt.sec);
+        }
+        int64_t utc = sys_clock::get_timestamp();
+        if (pvt.fixType >= 2 && pvt.valid.bits.validTime && pvt.valid.bits.validDate)
+        {
+            last_commit_tick = ubx_parser.get_last_commit_tick();
+            data.id = SensorType::GPS;
+            data.latitude = pvt.lat;
+            data.longitude = pvt.lon;
+            data.altitude = pvt.height;
+            data.velN = pvt.velN;
+            data.velE = pvt.velE;
+            data.velD = pvt.velD;
+            data.timestamp = millis();
+            data.hAcc = pvt.hAcc;
+            data.vAcc = pvt.vAcc;
+            data.fixType = pvt.fixType;
+            data.pDOP = pvt.pDOP;
+            data.flags = pvt.flags.all;
+
+            xQueueSend(gnssQueue, &data, 0);
+            xQueueSend(utcQueue, &utc, 0);
+        }
     }
 
     void task(void *pvParam)
@@ -37,8 +67,8 @@ namespace gnss
         // UART0を初期化
         Serial1.setFIFOSize(2048);
         Serial1.begin(9600);
-        delay(1000);                           // GPSレシーバの起動を待機
-        uint8_t cmd0[]={181, 98, 6, 8, 6, 0, 100, 0, 1, 0, 1, 0, 122, 18};
+        delay(1000); // GPSレシーバの起動を待機
+        uint8_t cmd0[] = {181, 98, 6, 8, 6, 0, 100, 0, 1, 0, 1, 0, 122, 18};
         Serial1.write(cmd0, sizeof(cmd0)); // RATEを100Hzに設定
         delay(100);
         // NAV-PVT出力を有効化
@@ -54,73 +84,86 @@ namespace gnss
         Serial1.flush();       // 無効なデータを破棄
         Serial1.begin(115200); // baudrate 115200で再度UART0を初期化
 
+        gnssQueue = xQueueCreate(5, sizeof(GPSData));
+        utcQueue = xQueueCreate(5, sizeof(int64_t));
+
+        if (gnssQueue == NULL)
+        {
+            SEGGER_RTT_WriteString(0, "Failed to create GNSS queue.\n");
+            while (1)
+                ; // Halt if queue creation fails
+        }
+        SEGGER_RTT_WriteString(0, "GNSS queue created successfully.\n");
+
+        ubx_parser.callbackPVT = pvt_callback;
+
         // PPSによる割り込み設定
         gpio_init(2);
         gpio_set_dir(2, GPIO_IN);
         gpio_set_irq_enabled_with_callback(2, GPIO_IRQ_EDGE_RISE, true, &pps_callback);
 
-        auto timerGNSS = xTimerCreate("gnss", 100, pdTRUE, 0, timer_callback);
-        xTimerStart(timerGNSS, 0);
-
+        // GNSSデータのポーリングを開始
+        xTaskCreate(gnss::task_polling, "gps_polling", 256, NULL, 6, NULL);
         while (1)
         {
-            while(Serial.available() > 0)
+            union
             {
-                uint8_t c = Serial.read();
-                Serial1.write(c);
+                GPSData data;
+                uint8_t bytes[sizeof(data)];
+            } spkt;
+            int64_t utc;
+            while (uxQueueMessagesWaiting(gnssQueue) > 0)
+            {
+                xQueueReceive(gnssQueue, &spkt.data, 0);
+                xQueueReceive(utcQueue, &utc, 0);
+
+                // SEGGER_RTT_printf(0, "GNSS Data: Lat: %d, Lon: %d, Alt: %d, VelN: %d, VelE: %d, VelD: %d, hAcc: %u, vAcc: %u, FixType: %u, pDOP: %u\n",
+                //                   spkt.data.latitude, spkt.data.longitude, spkt.data.altitude,
+                //                   spkt.data.velN, spkt.data.velE, spkt.data.velD,
+                //                   spkt.data.hAcc, spkt.data.vAcc,
+                //                   spkt.data.fixType, spkt.data.pDOP);
+
+                // バイトオーダーを変換
+                swap32<uint32_t>(&spkt.data.id);
+                swap32<int32_t>(&spkt.data.latitude);
+                swap32<int32_t>(&spkt.data.longitude);
+                swap32<int32_t>(&spkt.data.altitude);
+                swap32<int32_t>(&spkt.data.velN);
+                swap32<int32_t>(&spkt.data.velE);
+                swap32<int32_t>(&spkt.data.velD);
+                swap32<uint32_t>(&spkt.data.timestamp);
+                swap32<uint32_t>(&spkt.data.hAcc);
+                swap32<uint32_t>(&spkt.data.vAcc);
+                swap16<uint16_t>(&spkt.data.pDOP);
+                sd_logger::write_pkt(spkt.bytes, sizeof(spkt.bytes), utc);
+            }
+            vTaskDelay(100); // 100ms待機
+        }
+    }
+
+    void task_polling(void *pvParam)
+    {
+        Serial.begin(115200);
+        while (1)
+        {
+            if (Serial)
+            {
+                while (Serial.available() > 0)
+                {
+                    uint8_t c = Serial.read();
+                    Serial1.write(c);
+                }
             }
             while (Serial1.available() > 0)
             {
                 uint8_t c = Serial1.read();
                 ubx_parser.parse(c);
-                Serial.write(c);
+                if (Serial)
+                {
+                    Serial.write(c);
+                }
             }
-            vTaskDelay(1);
-        }
-    }
-
-    void timer_callback(TimerHandle_t xTimer)
-    {
-        union
-        {
-            GPSData data;
-            uint8_t bytes[sizeof(data)];
-        } spkt;
-        if (ubx_parser.get_nav_pvt().fixType>=2 && ubx_parser.get_nav_pvt().valid.bits.validTime && ubx_parser.get_nav_pvt().valid.bits.validDate && ubx_parser.age()<200)
-        {
-            spkt.data.id = SensorType::GPS;
-            spkt.data.latitude = ubx_parser.get_nav_pvt().lat;
-            spkt.data.longitude = ubx_parser.get_nav_pvt().lon;
-            spkt.data.altitude = ubx_parser.get_nav_pvt().height;
-            spkt.data.velN = ubx_parser.get_nav_pvt().velN;
-            spkt.data.velE = ubx_parser.get_nav_pvt().velE;
-            spkt.data.velD = ubx_parser.get_nav_pvt().velD;
-            spkt.data.timestamp = millis();
-            spkt.data.hAcc = ubx_parser.get_nav_pvt().hAcc;
-            spkt.data.vAcc = ubx_parser.get_nav_pvt().vAcc;
-            spkt.data.fixType = ubx_parser.get_nav_pvt().fixType;
-            spkt.data.pDOP = ubx_parser.get_nav_pvt().pDOP;
-            spkt.data.flags =ubx_parser.get_nav_pvt().flags.all;
-            
-            SEGGER_RTT_printf(0, "GNSS Data: Lat: %d, Lon: %d, Alt: %d, VelN: %d, VelE: %d, VelD: %d, hAcc: %u, vAcc: %u, FixType: %u, pDOP: %u\n",
-                spkt.data.latitude, spkt.data.longitude, spkt.data.altitude,
-                spkt.data.velN, spkt.data.velE, spkt.data.velD,
-                spkt.data.hAcc, spkt.data.vAcc,
-                spkt.data.fixType, spkt.data.pDOP);
-
-            // バイトオーダーを変換
-            swap32<int32_t>(&spkt.data.latitude);
-            swap32<int32_t>(&spkt.data.longitude);
-            swap32<int32_t>(&spkt.data.altitude);
-            swap32<int32_t>(&spkt.data.velN);
-            swap32<int32_t>(&spkt.data.velE);
-            swap32<int32_t>(&spkt.data.velD);
-            swap32<uint32_t>(&spkt.data.timestamp);
-            swap32<uint32_t>(&spkt.data.hAcc);
-            swap32<uint32_t>(&spkt.data.vAcc);
-            swap16<uint16_t>(&spkt.data.pDOP);
-
-            sd_logger::write_pkt(spkt.bytes, sizeof(spkt.bytes));
+            vTaskDelay(10);
         }
     }
 }

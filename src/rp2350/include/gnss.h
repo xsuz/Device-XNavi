@@ -1,18 +1,22 @@
 #pragma once
 #include <Arduino.h>
 #include <timers.h>
+#include <queue.h>
 
 namespace gnss{
+
+    extern QueueHandle_t gnssQueue;
+    
     /// @brief PPS信号の割り込みハンドラ
     /// @param gpio
     /// @param emask
     void pps_callback(uint gpio,uint32_t emask);
     
-    /// @brief GPSレシーバの受信タスク
+    /// @brief GPSレシーバのタスク
     /// @param pvParam
     void task(void* pvParam);
 
-    /// @brief 
-    /// @param xTimer GPSのサンプリング処理
-    void timer_callback(TimerHandle_t xTimer);
+    /// @brief GPSレシーバのポーリングのタスク
+    /// @param pvParam
+    void task_polling(void* pvParam);
 }

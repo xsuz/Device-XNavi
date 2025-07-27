@@ -86,12 +86,15 @@ void ubx::parser::parse(uint8_t c)
         {
             if (msg_type.u16 == 0x0107)
             {
-                last_commit_time=millis();
                 // Serial.println("msg_type=PVT");
                 for (int i = 0; i < sizeof(nav_pvt_data.bytes); i++)
                 {
                     nav_pvt_data.bytes[i] = buf[i];
                 }
+                if(callbackPVT!=nullptr){
+                    callbackPVT(nav_pvt_data.nav_pvt);
+                }
+                last_commit_time = millis();
             }
             else
             {

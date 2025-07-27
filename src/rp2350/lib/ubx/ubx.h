@@ -1,6 +1,6 @@
 #pragma once
 
-#include<Arduino.h>
+#include <Arduino.h>
 
 #include <stdint.h>
 #include <stddef.h>
@@ -17,14 +17,19 @@ namespace ubx
     public:
         void parse(uint8_t);
         void reset();
-        int64_t age() const{
-            return millis()-last_commit_time;
+        inline int64_t get_last_commit_tick() const
+        {
+            return last_commit_time;
         }
 
-        NAV_PVT get_nav_pvt() const
-        {
-            return nav_pvt_data.nav_pvt;
+        inline void get_nav_pvt(NAV_PVT *pvt) const{
+            uint8_t *bytes=(uint8_t*)pvt;
+            for(size_t i=0;i<sizeof(NAV_PVT);i++){
+                bytes[i]=nav_pvt_data.bytes[i];
+            }
         }
+
+        void (*callbackPVT)(NAV_PVT) = nullptr;
 
     private:
         uint8_t buf[1024];
@@ -55,7 +60,7 @@ namespace ubx
         uint8_t checksum_a = 0;
         uint8_t checksum_b = 0;
         uint8_t payload[1024] = {0};
-        int64_t last_commit_time=0;
+        int64_t last_commit_time = -1;
         union
         {
             NAV_PVT nav_pvt;
