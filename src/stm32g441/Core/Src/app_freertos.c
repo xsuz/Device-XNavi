@@ -27,6 +27,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "fdcan.h"
+#include "usart.h"
 #include "SEGGER_RTT.h"
 #include "SensorPacket.h"
 /* USER CODE END Includes */
@@ -61,7 +62,10 @@ const osThreadAttr_t defaultTask_attributes = {
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
-
+/// @brief Send packet via UART with COBS encoding
+/// @param data Pointer to the data to send
+/// @param size Size of the data to send
+void send_pkt(uint8_t *data, uint32_t size);
 /* USER CODE END FunctionPrototypes */
 
 void StartDefaultTask(void *argument);
@@ -126,16 +130,25 @@ void StartDefaultTask(void *argument)
   /* Infinite loop */
   for (;;)
   {
+    union
+    {
+      struct CANPacket data;
+      uint8_t raw[sizeof(struct CANPacket)];
+    } u;
 
-    struct CANPacket data;
-
-    while(uxQueueMessagesWaiting(xQueueCANPacketHandle) > 0)
+    while (uxQueueMessagesWaiting(xQueueCANPacketHandle) > 0)
     {
       HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
-      osDelay(10);
-      if (xQueueReceive(xQueueCANPacketHandle, &data, portMAX_DELAY) == pdTRUE)
+      osDelay(1);
+      if (xQueueReceive(xQueueCANPacketHandle, &u.data, portMAX_DELAY) == pdTRUE)
       {
-        SEGGER_RTT_printf(0, "Received CAN Packet: ID=0x%X, Length=%lu\n", data.id, data.size);
+        SEGGER_RTT_printf(0, "Received CAN message: id=0x%X data=[ ", u.data.id);
+        for (int32_t i = 0; i < u.data.size; i++)
+        {
+          SEGGER_RTT_printf(0, "0x%02X ", u.data.payload[i]);
+        }
+        SEGGER_RTT_printf(0, "]\n");
+        send_pkt(u.raw, sizeof(u.raw));
       }
       HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
     }
@@ -151,9 +164,7 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
   FDCAN_RxHeaderTypeDef fdcan1RxHeader;
   uint8_t fdcan1RxData[64];
   struct CANPacket canPacket;
-
-  SEGGER_RTT_printf(0, "callback : ");
-
+  
   if ((RxFifo0ITs & FDCAN_IT_RX_FIFO0_NEW_MESSAGE) != RESET)
   {
 
@@ -164,23 +175,60 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
     }
     canPacket.id = fdcan1RxHeader.Identifier;
     canPacket.size = fdcan1RxHeader.DataLength;
-    if (canPacket.size > 64)
+    if (canPacket.size > 8)
     {
-      canPacket.size = 64; // Limit size to 64 bytes
+      canPacket.size = 8; // Limit size to 64 bytes
     }
     for (int32_t i = 0; i < canPacket.size; i++)
     {
-      canPacket.data[i] = fdcan1RxData[i];
+      canPacket.payload[i] = fdcan1RxData[i];
     }
 
     xQueueSendFromISR(xQueueCANPacketHandle, &canPacket, NULL);
-    SEGGER_RTT_printf(0, "Received CAN message: ID=0x%X, Size=%d\n", canPacket.id, canPacket.size);
 
     if (HAL_FDCAN_ActivateNotification(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0) != HAL_OK)
     {
       Error_Handler();
     }
   }
+}
+
+void send_pkt(uint8_t *data, uint32_t size)
+{
+  // COBS encoding and sending logic here
+  // For now, just print the data to RTT
+
+  uint8_t cobs_buf_idx = 0, encoded_idx = 0;
+  uint8_t cobs_buf[256], encoded_data[256];
+
+  // COBS encoding
+  for (uint32_t i = 0; i < size; i++)
+  {
+    if (data[i] == 0)
+    {
+      encoded_data[encoded_idx] = cobs_buf_idx + 1;
+      encoded_idx++;
+      for (uint8_t j = 0; j < cobs_buf_idx; j++)
+      {
+        encoded_data[encoded_idx] = cobs_buf[j];
+        encoded_idx++;
+      }
+      cobs_buf_idx = 0; // Reset for next segment
+    }
+    else
+    {
+      cobs_buf[cobs_buf_idx] = data[i];
+      cobs_buf_idx++;
+    }
+  }
+  encoded_data[encoded_idx++] = cobs_buf_idx + 1; // Final segment length
+  for (uint8_t j = 0; j < cobs_buf_idx; j++)
+  {
+    encoded_data[encoded_idx++] = cobs_buf[j];
+  }
+  encoded_data[encoded_idx++] = 0; // End of COBS encoding
+  // Send the COBS-encoded packet over UART
+  HAL_UART_Transmit(&huart2, encoded_data, encoded_idx, HAL_MAX_DELAY);
 }
 
 /* USER CODE END Application */

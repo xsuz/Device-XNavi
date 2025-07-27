@@ -66,5 +66,5 @@ struct CANPacket {
   /// @brief CANのデータのサイズ
   uint32_t size;
   /// @brief CANのデータ
-  uint8_t data[64];
+  uint8_t payload[8];
 };
