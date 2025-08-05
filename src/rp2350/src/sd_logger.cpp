@@ -1,6 +1,7 @@
 #include "sd_logger.h"
 #include "byte_utils.h"
 #include "clock.h"
+#include "readme.h"
 
 #include <FreeRTOS.h>
 #include <task.h>
@@ -28,7 +29,7 @@ namespace sd_logger
     uint8_t state=0;
 
     char filename[128];
-    void inline get_filename(char *buf);
+    void inline get_filename();
 
     void inline write_raw(uint8_t);
 
@@ -42,26 +43,35 @@ namespace sd_logger
         FRESULT res;
 
         pinMode(LED, OUTPUT);
-
         digitalWrite(LED, LOW);
 
         while ((res = f_mount(&fs, "/", 0)) != FR_OK)
         {
             SEGGER_RTT_printf(0, "Failed to mount SD card, retrying...\n");
             digitalWrite(LED, HIGH);
+            vTaskDelay(50);
+            digitalWrite(LED, LOW);
+            vTaskDelay(50);
+        }
+        SEGGER_RTT_printf(0, "SD card mounted successfully.\n");
+
+        while((res = f_open(&fil,"README.md",FA_WRITE | FA_CREATE_ALWAYS))!=FR_OK)
+        {
+            SEGGER_RTT_printf(0, "Failed to open file README.md, retrying...\n");
+            digitalWrite(LED, HIGH);
             vTaskDelay(500);
             digitalWrite(LED, LOW);
             vTaskDelay(500);
         }
-        SEGGER_RTT_printf(0, "SD card mounted successfully.\n");
-        digitalWrite(LED, LOW);
+        f_write(&fil,readme::README,strlen(readme::README),NULL);
+        f_close(&fil);
 
         while (!sys_clock::is_valid())
         {
-            vTaskDelay(1000);
+            vTaskDelay(10);
         }
 
-        get_filename(filename);
+        get_filename();
 
         while ((res = f_open(&fil, filename, FA_WRITE | FA_CREATE_ALWAYS)) != FR_OK)
         {
@@ -78,7 +88,7 @@ namespace sd_logger
         {
             if (sd_logger::row != sd_logger::track)
             {
-                while (sd_logger::row != sd_logger::track)
+                while ((sd_logger::row != sd_logger::track) && (!BOOTSEL))
                 {
                     digitalWrite(LED, HIGH);
                     f_write(&fil, sd_logger::buf[sd_logger::track], sd_logger::buf_size_col, NULL);
@@ -97,12 +107,12 @@ namespace sd_logger
         }
     }
 
-    void inline get_filename(char *buf)
+    void inline get_filename()
     {
         uint16_t year;
         uint8_t month, day, hour, minutes, seconds;
         sys_clock::get_datetime(&year, &month, &day, &hour, &minutes, &seconds);
-        sprintf(buf, "log_%d%02d%02d_%02d%02d%02d.bin", year, month, day, hour, minutes, seconds);
+        sprintf(sd_logger::filename, "log_%d%02d%02d_%02d%02d%02d.bin", year, month, day, hour, minutes, seconds);
     }
 
     void write_pkt(const uint8_t *buffer, size_t size,int64_t timestamp)
@@ -117,7 +127,7 @@ namespace sd_logger
         uint8_t cobs_buf_idx = 0;
         uint8_t cobs_buf[256];
 
-        if (!state||!sys_clock::is_valid())
+        if (!state||!sys_clock::is_valid()||BOOTSEL)
         {
             return;
         }
