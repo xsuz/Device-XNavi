@@ -42,9 +42,9 @@ Each packet in the log file has a GPS timestamp(int64) at the beginning, followe
 | [ 8-11] |a_x         |float32|Big Endian   |m/s^2 |
 | [12-15] |a_y         |float32|Big Endian   |m/s^2 |
 | [16-19] |a_z         |float32|Big Endian   |m/s^2 |
-| [20-23] |w_x         |float32|Big Endian   |m/s^2 |
-| [24-27] |w_y         |float32|Big Endian   |m/s^2 |
-| [28-31] |w_z         |float32|Big Endian   |m/s^2 |
+| [20-23] |w_x         |float32|Big Endian   |rad/s |
+| [24-27] |w_y         |float32|Big Endian   |rad/s |
+| [28-31] |w_z         |float32|Big Endian   |rad/s |
 
 ### 2.3. CAN bus
 
