@@ -41,24 +41,30 @@ namespace imu
     {
         SEGGER_RTT_WriteString(0, "IMU task started.\n");
 
-        SEGGER_RTT_printf(0, "Initializing SPI1 with RX: %d, CS: %d, SCK: %d, TX: %d\n", SPI1_RX, SPI1_CS, SPI1_SCK, SPI1_TX);
+        while(!sys_clock::is_valid())
+        {
+            SEGGER_RTT_WriteString(0, "imu : Waiting for system clock to be valid...\n");
+            vTaskDelay(1000 / portTICK_PERIOD_MS);
+        }
+
+        SEGGER_RTT_printf(0, "imu : Initializing SPI1 with RX: %d, CS: %d, SCK: %d, TX: %d\n", SPI1_RX, SPI1_CS, SPI1_SCK, SPI1_TX);
         // IMU setup
         SPI1.setRX(SPI1_RX);
         SPI1.setCS(SPI1_CS);
         SPI1.setSCK(SPI1_SCK);
         SPI1.setTX(SPI1_TX);
         SPI1.begin();
-        SEGGER_RTT_WriteString(0, "SPI1 initialized.\n");
+        SEGGER_RTT_WriteString(0, "imu : SPI1 initialized.\n");
         pinMode(LED, OUTPUT);
         digitalWrite(LED, LOW);
 
         if (asm330lhh.begin() == ASM330LHH_OK)
         {
-            SEGGER_RTT_WriteString(0, "ASM330LHH initialized successfully\n");
+            SEGGER_RTT_WriteString(0, "imu : ASM330LHH initialized successfully\n");
         }
         else
         {
-            SEGGER_RTT_WriteString(0, "Failed to initialize ASM330LHH\n");
+            SEGGER_RTT_WriteString(0, "imu : Failed to initialize ASM330LHH\n");
             while (1)
                 ; // Halt if initialization fails
         }
@@ -68,23 +74,23 @@ namespace imu
         asm330lhh.Set_X_FS(ASM330LHH_2g);
         asm330lhh.Set_G_FS(ASM330LHH_125dps);
 
-        SEGGER_RTT_WriteString(0, "ASM330LHH enabled for accelerometer and gyroscope.\n");
+        SEGGER_RTT_WriteString(0, "imu : ASM330LHH enabled for accelerometer and gyroscope.\n");
 
         // Initialize the queue for IMU data
         imuQueue = xQueueCreate(10, sizeof(IMUData));
         utcQueue = xQueueCreate(10, sizeof(int64_t));
         if (imuQueue == NULL)
         {
-            SEGGER_RTT_WriteString(0, "Failed to create IMU queue.\n");
+            SEGGER_RTT_WriteString(0, "imu : Failed to create IMU queue.\n");
             while (1)
                 ; // Halt if queue creation fails
         }
-        SEGGER_RTT_WriteString(0, "IMU queue created successfully.\n");
+        SEGGER_RTT_WriteString(0, "imu : IMU queue created successfully.\n");
         // Create a timer for periodic IMU data collection
-        SEGGER_RTT_WriteString(0, "Creating IMU timer...\n");
+        SEGGER_RTT_WriteString(0, "imu : Creating IMU timer...\n");
         auto timerIMU = xTimerCreate("imu", delta_t, pdTRUE, 0, imu::timer_callback);
         xTimerStart(timerIMU, 0);
-        SEGGER_RTT_WriteString(0, "IMU timer started.\n");
+        SEGGER_RTT_WriteString(0, "imu : IMU timer started.\n");
         while (1)
         {
             union
@@ -98,7 +104,7 @@ namespace imu
                 xQueueReceive(imuQueue, &spkt.data, 0);
                 xQueueReceive(utcQueue,&utc,0);
                 
-                // SEGGER_RTT_printf(0, "IMU Data : accl (%d, %d, %d)[mm/s^2]  gyro (%d, %d, %d)[mdps]\n",
+                // SEGGER_RTT_printf(0, "imu : accl (%d, %d, %d)[mm/s^2]  gyro (%d, %d, %d)[mdps]\n",
                 //                   (int)(spkt.data.a_x * 1000),            // Convert to mm/s^2
                 //                   (int)(spkt.data.a_y * 1000),            // Convert to mm/s^2
                 //                   (int)(spkt.data.a_z * 1000),            // Convert to mm/s^2

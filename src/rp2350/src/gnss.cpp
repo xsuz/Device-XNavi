@@ -18,9 +18,8 @@ namespace gnss
 {
     /// @brief u-blox UBXパーサー
     ubx::parser ubx_parser;
-    // std::tm timeinfo;
+    /// @brief PPSによる割込みが発生した時刻
     volatile uint32_t tick_last_pps = 0;
-    uint32_t last_commit_tick = 0;
     QueueHandle_t gnssQueue;
     QueueHandle_t utcQueue;
 
@@ -39,26 +38,23 @@ namespace gnss
             sys_clock::set_timestamp_offset(tick_last_pps, pvt.year, pvt.month, pvt.day, pvt.hour, pvt.min, pvt.sec);
         }
         int64_t utc = sys_clock::get_timestamp();
-        if (pvt.fixType >= 2 && pvt.valid.bits.validTime && pvt.valid.bits.validDate)
-        {
-            last_commit_tick = ubx_parser.get_last_commit_tick();
-            data.id = SensorType::GPS;
-            data.latitude = pvt.lat;
-            data.longitude = pvt.lon;
-            data.altitude = pvt.height;
-            data.velN = pvt.velN;
-            data.velE = pvt.velE;
-            data.velD = pvt.velD;
-            data.timestamp = millis();
-            data.hAcc = pvt.hAcc;
-            data.vAcc = pvt.vAcc;
-            data.fixType = pvt.fixType;
-            data.pDOP = pvt.pDOP;
-            data.flags = pvt.flags.all;
+        
+        data.id = SensorType::GPS;
+        data.latitude = pvt.lat;
+        data.longitude = pvt.lon;
+        data.altitude = pvt.height;
+        data.velN = pvt.velN;
+        data.velE = pvt.velE;
+        data.velD = pvt.velD;
+        data.timestamp = millis();
+        data.hAcc = pvt.hAcc;
+        data.vAcc = pvt.vAcc;
+        data.fixType = pvt.fixType;
+        data.pDOP = pvt.pDOP;
+        data.flags = pvt.flags.all;
 
-            xQueueSend(gnssQueue, &data, 0);
-            xQueueSend(utcQueue, &utc, 0);
-        }
+        xQueueSend(gnssQueue, &data, 0);
+        xQueueSend(utcQueue, &utc, 0);
     }
 
     void task(void *pvParam)

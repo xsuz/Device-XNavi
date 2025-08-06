@@ -84,21 +84,26 @@ void ubx::parser::parse(uint8_t c)
         state = State::SYNC_CHAR1;
         if (checksum_b == c)
         {
-            if (msg_type.u16 == 0x0107)
+            switch (msg_type.u16)
             {
-                // Serial.println("msg_type=PVT");
+            case 0x0107:
+            { // NAV-PVT message
                 for (int i = 0; i < sizeof(nav_pvt_data.bytes); i++)
                 {
                     nav_pvt_data.bytes[i] = buf[i];
                 }
-                if(callbackPVT!=nullptr){
+                if (callbackPVT != nullptr)
+                {
                     callbackPVT(nav_pvt_data.nav_pvt);
                 }
-                last_commit_time = millis();
             }
-            else
+            break;
+            default:
             {
-                // Serial.printf("msg_type=%04x", msg_type.u16);
+                // Serial.print("Unknown message type: ");
+                // Serial.println(msg_type.u16, HEX);
+            }
+            break;
             }
         }
         else

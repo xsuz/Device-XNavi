@@ -20,11 +20,11 @@ void setup()
     // put your setup code here, to run once:
     SEGGER_RTT_Init();
 
-    xTaskCreate(gnss::task,"gps",512,NULL,3,&Task1);
-    xTaskCreate(imu::task,"imu",256,NULL,1,&Task2);
+    xTaskCreate(gnss::task,"gps",512,NULL,4,&Task1);
+    xTaskCreate(imu::task,"imu",256,NULL,3,&Task2);
     xTaskCreate(sd_logger::task,"sd",1024,NULL,1,&Task3);
     xTaskCreate(twelite::task,"twelite",256,NULL,2,&Task4);
-    vTaskStartScheduler();
+    // vTaskStartScheduler();
 }
 
 void loop()

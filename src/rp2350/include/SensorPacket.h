@@ -3,9 +3,9 @@
 #include<stdint.h>
 
 enum SensorType{
-    GPS = 0x60, // GPSデータ
-    IMU = 0x40, // IMUデータ
-    Attitude = 0xA0, // 姿勢データ
+    GPS       = 0x60000000, // GPSデータ
+    IMU       = 0x40000000, // IMUデータ
+    Attitude  = 0xA0000000, // 姿勢データ
 };
 
 /// @brief GPSのDeviceData
