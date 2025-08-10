@@ -113,11 +113,11 @@ namespace gnss
                 xQueueReceive(gnssQueue, &spkt.data, 0);
                 xQueueReceive(utcQueue, &utc, 0);
 
-                // SEGGER_RTT_printf(0, "GNSS Data: Lat: %d, Lon: %d, Alt: %d, VelN: %d, VelE: %d, VelD: %d, hAcc: %u, vAcc: %u, FixType: %u, pDOP: %u\n",
-                //                   spkt.data.latitude, spkt.data.longitude, spkt.data.altitude,
-                //                   spkt.data.velN, spkt.data.velE, spkt.data.velD,
-                //                   spkt.data.hAcc, spkt.data.vAcc,
-                //                   spkt.data.fixType, spkt.data.pDOP);
+                SEGGER_RTT_printf(0, "gnss : latitude: %d, longitude: %d, altitude: %d, velN: %d, velE: %d, velD: %d, hAcc: %u, vAcc: %u, fixType: %u, pDOP: %u\n",
+                                  spkt.data.latitude, spkt.data.longitude, spkt.data.altitude,
+                                  spkt.data.velN, spkt.data.velE, spkt.data.velD,
+                                  spkt.data.hAcc, spkt.data.vAcc,
+                                  spkt.data.fixType, spkt.data.pDOP);
 
                 // バイトオーダーを変換
                 swap32<uint32_t>(&spkt.data.id);
@@ -133,7 +133,7 @@ namespace gnss
                 swap16<uint16_t>(&spkt.data.pDOP);
                 sd_logger::write_pkt(spkt.bytes, sizeof(spkt.bytes), utc);
             }
-            vTaskDelay(100); // 100ms待機
+            vTaskDelay(10); // 10ms待機
         }
     }
 

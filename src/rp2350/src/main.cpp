@@ -8,7 +8,7 @@
 #include "sd_logger.h"
 #include "gnss.h"
 #include "imu.h"
-#include "twelite.h"
+#include "canbus.h"
 
 TaskHandle_t Task1;
 TaskHandle_t Task2;
@@ -23,7 +23,7 @@ void setup()
     xTaskCreate(gnss::task,"gps",512,NULL,4,&Task1);
     xTaskCreate(imu::task,"imu",256,NULL,3,&Task2);
     xTaskCreate(sd_logger::task,"sd",1024,NULL,1,&Task3);
-    xTaskCreate(twelite::task,"twelite",256,NULL,2,&Task4);
+    xTaskCreate(canbus::task,"twelite",256,NULL,2,&Task4);
     // vTaskStartScheduler();
 }
 

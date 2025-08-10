@@ -13,14 +13,14 @@
 ######################################
 # target
 ######################################
-TARGET = g441rtos
+TARGET = firmware
 
 
 ######################################
 # building variables
 ######################################
 # debug build?
-DEBUG = 1
+DEBUG = 0
 # optimization
 OPT = -Og
 

@@ -104,13 +104,13 @@ namespace imu
                 xQueueReceive(imuQueue, &spkt.data, 0);
                 xQueueReceive(utcQueue,&utc,0);
                 
-                // SEGGER_RTT_printf(0, "imu : accl (%d, %d, %d)[mm/s^2]  gyro (%d, %d, %d)[mdps]\n",
-                //                   (int)(spkt.data.a_x * 1000),            // Convert to mm/s^2
-                //                   (int)(spkt.data.a_y * 1000),            // Convert to mm/s^2
-                //                   (int)(spkt.data.a_z * 1000),            // Convert to mm/s^2
-                //                   (int)(spkt.data.w_x / deg2rad * 1000),  // Convert to mdps
-                //                   (int)(spkt.data.w_y / deg2rad * 1000),  // Convert to mdps
-                //                   (int)(spkt.data.w_z / deg2rad * 1000)); // Convert to mdps
+                SEGGER_RTT_printf(0, "imu : accl (%d, %d, %d)[mm/s^2]  gyro (%d, %d, %d)[mdps]\n",
+                                  (int)(spkt.data.a_x * 1000),            // Convert to mm/s^2
+                                  (int)(spkt.data.a_y * 1000),            // Convert to mm/s^2
+                                  (int)(spkt.data.a_z * 1000),            // Convert to mm/s^2
+                                  (int)(spkt.data.w_x / deg2rad * 1000),  // Convert to mdps
+                                  (int)(spkt.data.w_y / deg2rad * 1000),  // Convert to mdps
+                                  (int)(spkt.data.w_z / deg2rad * 1000)); // Convert to mdps
 
                 swap32<uint32_t>(&spkt.data.id);
                 swap32<uint32_t>(&spkt.data.timestamp);
