@@ -52,6 +52,7 @@ struct IMUData {
   float w_z;
 };
 
+/// @brief 姿勢角の計算結果
 struct AttitudeData {
   /// @brief デバイス識別子
   uint32_t id;
@@ -65,4 +66,26 @@ struct AttitudeData {
   float q2;
   /// @brief Quaternion z
   float q3;
+};
+
+
+/// @brief CAN busの送受信データ
+struct CANPacket {
+  /// @brief CANのデバイス識別子
+  uint32_t id;
+  /// @brief CANのデータのサイズ
+  uint32_t size;
+  /// @brief CANのデータ
+  uint8_t payload[8];
+};
+
+struct LoggerStatus {
+  /// @brief デバイス識別子
+  uint32_t id;
+  /// @brief 時刻
+  uint32_t timestamp;
+  /// @brief 電源電圧
+  uint16_t voltage;
+  /// @brief ログの状態
+  uint16_t status;
 };

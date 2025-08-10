@@ -1,5 +1,6 @@
 #include <FreeRTOS.h>
 #include <task.h>
+#include <queue.h>
 #include <Arduino.h>
 #include <PacketSerial.h>
 
@@ -12,6 +13,7 @@
 namespace canbus
 {
     PacketSerial ps;
+    QueueHandle_t canQueue;
 
     void onPacketReceived(const uint8_t *buffer, size_t size)
     {
@@ -34,13 +36,29 @@ namespace canbus
         Serial2.begin(230400);
         ps.setStream(&Serial2);
         ps.setPacketHandler(&onPacketReceived);
+        canQueue = xQueueCreate(20, sizeof(CANPacket));
         SEGGER_RTT_WriteString(0, "TWELITE Serial2 initialized.\n");
 
         // TWELITEからのデータ受信ループ
         while (true)
         {
             ps.update(); // 受信データの更新
+            while (uxQueueMessagesWaiting(canQueue) > 0)
+            {
+                uint8_t raw[sizeof(CANPacket)];
+                if (xQueueReceive(canQueue, &raw, 0) == pdTRUE)
+                {
+                    ps.send(raw, sizeof(raw)); // パケットを送信
+                }
+            }
             vTaskDelay(1); // CPU負荷を下げるために少し待機
+        }
+    }
+    void write_pkt(CANPacket pkt)
+    {
+        if (canQueue != NULL)
+        {
+            xQueueSend(canQueue, &pkt, 0);
         }
     }
 }

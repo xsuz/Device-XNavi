@@ -28,7 +28,7 @@ namespace ubx
         void (*callbackPVT)(NAV_PVT) = nullptr;
 
     private:
-        uint8_t buf[1024];
+        uint8_t buf[512];
         enum State
         {
             SYNC_CHAR1,// Synchronization character (0xB5)
@@ -55,7 +55,7 @@ namespace ubx
         uint16_t idx = 0;
         uint8_t checksum_a = 0;
         uint8_t checksum_b = 0;
-        uint8_t payload[1024] = {0};
+        uint8_t payload[512] = {0};
         union
         {
             NAV_PVT nav_pvt;

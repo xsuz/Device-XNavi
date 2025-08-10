@@ -19,6 +19,9 @@ namespace sd_logger
 
     constexpr int LED = 10; // Use built-in LED for status indication
 
+    FATFS fs;
+    FIL fil;
+
     constexpr size_t buf_size_col = 4096;
     constexpr size_t buf_size_row = 4;
     volatile size_t num_to_write = 0;
@@ -36,9 +39,6 @@ namespace sd_logger
     void task(void *pvParam)
     {
         sd_logger::xSemaphore = xSemaphoreCreateMutexStatic(&sd_logger::xMutexBuf);
-
-        FATFS fs;
-        FIL fil;
 
         FRESULT res;
 
