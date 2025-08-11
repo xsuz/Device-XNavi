@@ -22,8 +22,6 @@ namespace imu
     QueueHandle_t imuQueue;
     QueueHandle_t utcQueue;
 
-    constexpr int LED = 11;
-
     constexpr int SPI1_CS = 13,
                   SPI1_RX = 12,
                   SPI1_SCK = 14,
@@ -55,8 +53,6 @@ namespace imu
         SPI1.setTX(SPI1_TX);
         SPI1.begin();
         SEGGER_RTT_WriteString(0, "imu : SPI1 initialized.\n");
-        pinMode(LED, OUTPUT);
-        digitalWrite(LED, LOW);
 
         if (asm330lhh.begin() == ASM330LHH_OK)
         {
@@ -141,7 +137,7 @@ namespace imu
 
                 // Byte order conversion
             }
-            vTaskDelay(10); // Delay to prevent busy-waiting
+            vTaskDelay(20); // Delay to prevent busy-waiting
         }
     }
     void timer_callback(TimerHandle_t xTimer)
@@ -153,10 +149,8 @@ namespace imu
         } spkt;
         int64_t utc;
         int16_t acc[3], gyr[3];
-        digitalWrite(LED, HIGH);
         asm330lhh.Get_X_AxesRaw(acc);
         asm330lhh.Get_G_AxesRaw(gyr);
-        digitalWrite(LED, LOW);
         spkt.data.id = SensorType::IMU; // IMU device ID
         spkt.data.timestamp = millis();
         spkt.data.a_x = acc[0] * acc_sensitivity;  // a_x(m/s^2)

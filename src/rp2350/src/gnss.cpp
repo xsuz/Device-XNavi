@@ -22,6 +22,8 @@ namespace gnss
     volatile uint32_t tick_last_pps = 0;
     QueueHandle_t gnssQueue;
     QueueHandle_t utcQueue;
+    
+    constexpr int LED = 11;
 
     void pps_callback(uint gpio, uint32_t emask)
     {
@@ -32,6 +34,7 @@ namespace gnss
 
     void pvt_callback(ubx::NAV_PVT pvt)
     {
+        digitalWrite(LED, HIGH);
         GPSData data;
         if (pvt.valid.bits.validDate && pvt.valid.bits.validTime && tick_last_pps > 0)
         {
@@ -55,11 +58,14 @@ namespace gnss
 
         xQueueSend(gnssQueue, &data, 0);
         xQueueSend(utcQueue, &utc, 0);
+        digitalWrite(LED, LOW);
     }
 
     void task(void *pvParam)
     {
         SEGGER_RTT_WriteString(0, "GNSS task started.\n");
+        pinMode(LED, OUTPUT);
+        digitalWrite(LED, LOW);
         // UART0を初期化
         Serial1.setFIFOSize(2048);
         Serial1.begin(9600);

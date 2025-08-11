@@ -139,7 +139,6 @@ void StartDefaultTask(void *argument)
     while (uxQueueMessagesWaiting(xQueueCANPacketHandle) > 0)
     {
       HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
-      osDelay(1);
       if (xQueueReceive(xQueueCANPacketHandle, &u.data, portMAX_DELAY) == pdTRUE)
       {
         SEGGER_RTT_printf(0, "Received CAN message: id=0x%X data=[ ", u.data.id);
