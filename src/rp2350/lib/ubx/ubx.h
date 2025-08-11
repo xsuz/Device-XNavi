@@ -26,9 +26,11 @@ namespace ubx
         }
 
         void (*callbackPVT)(NAV_PVT) = nullptr;
+        
+        void (*callbackReset)(void) = nullptr;
 
     private:
-        uint8_t buf[512];
+        uint8_t buf[1024];
         enum State
         {
             SYNC_CHAR1,// Synchronization character (0xB5)
@@ -39,7 +41,7 @@ namespace ubx
             LENGTH_MSB,// Length of payload (MSB)
             PAYLOAD,// Payload
             CK_A,// Checksum A
-            CK_B// Checksum B
+            CK_B,// Checksum B
         };
         State state = State::SYNC_CHAR1;
         union
@@ -55,7 +57,7 @@ namespace ubx
         uint16_t idx = 0;
         uint8_t checksum_a = 0;
         uint8_t checksum_b = 0;
-        uint8_t payload[512] = {0};
+        uint8_t payload[1024] = {0};
         union
         {
             NAV_PVT nav_pvt;

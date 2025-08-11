@@ -37,11 +37,11 @@ namespace imu
 
     void task(void *pvParam)
     {
-        SEGGER_RTT_WriteString(0, "IMU task started.\n");
+        SEGGER_RTT_WriteString(0, "imu : IMU task started.\n");
 
         while(!sys_clock::is_valid())
         {
-            SEGGER_RTT_WriteString(0, "imu : Waiting for system clock to be valid...\n");
+            // SEGGER_RTT_WriteString(0, "imu : Waiting for system clock to be valid...\n");
             vTaskDelay(1000 / portTICK_PERIOD_MS);
         }
 
@@ -100,13 +100,16 @@ namespace imu
                 xQueueReceive(imuQueue, &spkt.data, 0);
                 xQueueReceive(utcQueue,&utc,0);
                 
-                SEGGER_RTT_printf(0, "imu : accl (%d, %d, %d)[mm/s^2]  gyro (%d, %d, %d)[mdps]\n",
-                                  (int)(spkt.data.a_x * 1000),            // Convert to mm/s^2
-                                  (int)(spkt.data.a_y * 1000),            // Convert to mm/s^2
-                                  (int)(spkt.data.a_z * 1000),            // Convert to mm/s^2
-                                  (int)(spkt.data.w_x / deg2rad * 1000),  // Convert to mdps
-                                  (int)(spkt.data.w_y / deg2rad * 1000),  // Convert to mdps
-                                  (int)(spkt.data.w_z / deg2rad * 1000)); // Convert to mdps
+                // SEGGER_RTT_printf(0, "imu : accl (%d, %d, %d)[mm/s^2]  gyro (%d, %d, %d)[mdps]\n",
+                //                   (int)(spkt.data.a_x * 1000),            // Convert to mm/s^2
+                //                   (int)(spkt.data.a_y * 1000),            // Convert to mm/s^2
+                //                   (int)(spkt.data.a_z * 1000),            // Convert to mm/s^2
+                //                   (int)(spkt.data.w_x / deg2rad * 1000),  // Convert to mdps
+                //                   (int)(spkt.data.w_y / deg2rad * 1000),  // Convert to mdps
+                //                   (int)(spkt.data.w_z / deg2rad * 1000)); // Convert to mdps
+
+                // Update quaternion using Madgwick filter
+                madgwick::update_imu(spkt.data.w_x, spkt.data.w_y, spkt.data.w_z, spkt.data.a_x, spkt.data.a_y, spkt.data.a_z, quat);
 
                 swap32<uint32_t>(&spkt.data.id);
                 swap32<uint32_t>(&spkt.data.timestamp);
@@ -117,9 +120,6 @@ namespace imu
                 swap32<float>(&spkt.data.w_y);
                 swap32<float>(&spkt.data.w_z);
                 sd_logger::write_pkt(spkt.bytes, sizeof(spkt.bytes),utc);
-
-                // Update quaternion using Madgwick filter
-                madgwick::update_imu(spkt.data.w_x, spkt.data.w_y, spkt.data.w_z, spkt.data.a_x, spkt.data.a_y, spkt.data.a_z, quat);
 
                 union
                 {
@@ -157,8 +157,8 @@ namespace imu
         spkt.data.a_y = acc[1] * acc_sensitivity;  // a_y(m/s^2)
         spkt.data.a_z = acc[2] * acc_sensitivity;  // a_z(m/s^2)
         spkt.data.w_x = gyr[0] * gyro_sensitivity; // // w_x(rad/s)
-        spkt.data.w_y = gyr[1] * gyro_sensitivity; // // w_x(rad/s)
-        spkt.data.w_z = gyr[2] * gyro_sensitivity; // // w_x(rad/s)
+        spkt.data.w_y = gyr[1] * gyro_sensitivity; // // w_y(rad/s)
+        spkt.data.w_z = gyr[2] * gyro_sensitivity; // // w_z(rad/s)
 
         utc = sys_clock::get_timestamp();
         xQueueSendFromISR(imuQueue, &spkt.data, NULL);

@@ -36,19 +36,19 @@ struct GPSData {
 struct IMUData {
   /// @brief デバイス識別子
   uint32_t id;
-  /// @brief 時刻
+  /// @brief 時刻 : ms
   uint32_t timestamp;
-  /// @brief 加速度 x
+  /// @brief 加速度 x : m/s^2
   float a_x;
-  /// @brief 加速度 y
+  /// @brief 加速度 y : m/s^2
   float a_y;
-  /// @brief 加速度 z
+  /// @brief 加速度 z : m/s^2
   float a_z;
-  /// @brief 角速度 x
+  /// @brief 角速度 x : rad/s
   float w_x;
-  /// @brief 角速度 y
+  /// @brief 角速度 y : rad/s
   float w_y;
-  /// @brief 角速度 z
+  /// @brief 角速度 z : rad/s
   float w_z;
 };
 
@@ -82,10 +82,12 @@ struct CANPacket {
 struct LoggerStatus {
   /// @brief デバイス識別子
   uint32_t id;
-  /// @brief 時刻
+  /// @brief 時刻 : msec
   uint32_t timestamp;
-  /// @brief 電源電圧
+  /// @brief 電源電圧 : mV
   uint16_t voltage;
+  /// @brief バッテリー残量 : %
+  uint8_t percentage;
   /// @brief ログの状態
-  uint16_t status;
+  uint8_t status;
 };

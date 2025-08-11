@@ -56,14 +56,24 @@ namespace gnss
         data.pDOP = pvt.pDOP;
         data.flags = pvt.flags.all;
 
+        SEGGER_RTT_printf(0, "gnss : latitude: %d, longitude: %d, altitude: %d, velN: %d, velE: %d, velD: %d, hAcc: %u, vAcc: %u, fixType: %u, pDOP: %u\n",
+            pvt.lat, pvt.lon, pvt.height, pvt.velN, pvt.velE, pvt.velD, pvt.hAcc, pvt.vAcc, pvt.fixType, pvt.pDOP);
+
         xQueueSend(gnssQueue, &data, 0);
         xQueueSend(utcQueue, &utc, 0);
         digitalWrite(LED, LOW);
     }
 
+    void callback_reset()
+    {
+        Serial1.begin(115200);
+        Serial1.flush();
+        SEGGER_RTT_WriteString(0, "gnss : reset UBX parser.\n");
+    }
+
     void task(void *pvParam)
     {
-        SEGGER_RTT_WriteString(0, "GNSS task started.\n");
+        SEGGER_RTT_WriteString(0, "gnss : GNSS task started.\n");
         pinMode(LED, OUTPUT);
         digitalWrite(LED, LOW);
         // UART0を初期化
@@ -91,13 +101,14 @@ namespace gnss
 
         if (gnssQueue == NULL)
         {
-            SEGGER_RTT_WriteString(0, "Failed to create GNSS queue.\n");
+            SEGGER_RTT_WriteString(0, "gnss : Failed to create GNSS queue.\n");
             while (1)
                 ; // Halt if queue creation fails
         }
-        SEGGER_RTT_WriteString(0, "GNSS queue created successfully.\n");
+        SEGGER_RTT_WriteString(0, "gnss : GNSS queue created successfully.\n");
 
         ubx_parser.callbackPVT = pvt_callback;
+        ubx_parser.callbackReset = callback_reset;
 
         // PPSによる割り込み設定
         gpio_init(2);
@@ -119,11 +130,11 @@ namespace gnss
                 xQueueReceive(gnssQueue, &spkt.data, 0);
                 xQueueReceive(utcQueue, &utc, 0);
 
-                SEGGER_RTT_printf(0, "gnss : latitude: %d, longitude: %d, altitude: %d, velN: %d, velE: %d, velD: %d, hAcc: %u, vAcc: %u, fixType: %u, pDOP: %u\n",
-                                  spkt.data.latitude, spkt.data.longitude, spkt.data.altitude,
-                                  spkt.data.velN, spkt.data.velE, spkt.data.velD,
-                                  spkt.data.hAcc, spkt.data.vAcc,
-                                  spkt.data.fixType, spkt.data.pDOP);
+                // SEGGER_RTT_printf(0, "gnss : latitude: %d, longitude: %d, altitude: %d, velN: %d, velE: %d, velD: %d, hAcc: %u, vAcc: %u, fixType: %u, pDOP: %u\n",
+                //                   spkt.data.latitude, spkt.data.longitude, spkt.data.altitude,
+                //                   spkt.data.velN, spkt.data.velE, spkt.data.velD,
+                //                   spkt.data.hAcc, spkt.data.vAcc,
+                //                   spkt.data.fixType, spkt.data.pDOP);
 
                 // バイトオーダーを変換
                 swap32<uint32_t>(&spkt.data.id);

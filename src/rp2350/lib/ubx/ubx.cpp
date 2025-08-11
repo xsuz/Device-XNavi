@@ -20,6 +20,11 @@ void ubx::parser::parse(uint8_t c)
             checksum_b = 0;
             state = State::CLASS;
         }
+        else
+        {
+            state = State::SYNC_CHAR1;
+            reset();
+        }
     }
     break;
     case State::CLASS:
@@ -53,13 +58,17 @@ void ubx::parser::parse(uint8_t c)
         checksum_b += checksum_a;
         state = State::PAYLOAD;
         idx = 0;
+        if (length >= sizeof(buf))
+        {
+            reset();
+        }
     }
     break;
     case State::PAYLOAD:
     {
         buf[idx] = c;
-        checksum_a = checksum_a + buf[idx];
-        checksum_b = checksum_b + checksum_a;
+        checksum_a += c;
+        checksum_b += checksum_a;
         idx++;
         if (idx == length)
         {
@@ -75,14 +84,18 @@ void ubx::parser::parse(uint8_t c)
         }
         else
         {
-            state = State::SYNC_CHAR1;
+            reset();
         }
     }
     break;
     case State::CK_B:
     {
-        state = State::SYNC_CHAR1;
-        if (checksum_b == c)
+        if (checksum_b != c)
+        {
+            reset();
+            return;
+        }
+        else
         {
             switch (msg_type.u16)
             {
@@ -99,23 +112,17 @@ void ubx::parser::parse(uint8_t c)
             }
             break;
             default:
-            {
-                // Serial.print("Unknown message type: ");
-                // Serial.println(msg_type.u16, HEX);
+                break;
             }
-            break;
-            }
-        }
-        else
-        {
-            // Serial.println("failed..@ckb");
+            state = State::SYNC_CHAR1;
         }
     }
     break;
     default:
     {
         // Serial.println("error @ parse");
-    };
+    }
+    break;
     }
 }
 
@@ -130,5 +137,8 @@ void ubx::parser::reset()
     for (int i = 0; i < sizeof(buf); i++)
     {
         buf[i] = 0;
+    }
+    if(callbackReset!=nullptr){
+        callbackReset();
     }
 }
