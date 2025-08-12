@@ -77,7 +77,7 @@ namespace DeviceData
         /// @brief CANのデータのサイズ
         uint32_t size;
         /// @brief CANのデータ
-        uint8_t payload[8];
+        uint8_t payload[64];
     };
 
     struct XNaviStatus

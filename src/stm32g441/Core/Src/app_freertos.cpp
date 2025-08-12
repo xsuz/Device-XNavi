@@ -141,12 +141,12 @@ void StartDefaultTask(void *argument)
             if (xQueueReceive(xQueueCANPacketHandle, &u.data, portMAX_DELAY) == pdTRUE)
             {
                 SEGGER_RTT_printf(0, "Received CAN message: id=0x%X data=[ ", u.data.id);
-                for (int32_t i = 0; i < u.data.size; i++)
+                for (size_t i = 0; i < u.data.size; i++)
                 {
                     SEGGER_RTT_printf(0, "0x%02X ", u.data.payload[i]);
                 }
                 SEGGER_RTT_printf(0, "]\n");
-                size_t size = cobs::encode(u.raw, sizeof(u.raw), encoded_data);
+                size_t size = cobs::encode(u.raw, u.data.size + 8, encoded_data);
                 HAL_UART_Transmit(&huart2, encoded_data, size, HAL_MAX_DELAY);
             }
             HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
@@ -186,23 +186,24 @@ void StartUartPollingTask(void *argument)
                     {
                         u.raw[i] = decoded[i];
                     }
-                    SEGGER_RTT_printf(0, "cobs : CANPacket(id:%04x,size=%d)\n",u.data.id,u.data.size);
-                    switch (u.data.id)
+
+                    FDCAN_TxHeaderTypeDef TxHeader;
+                    TxHeader.Identifier = u.data.id;
+                    TxHeader.DataLength = u.data.size;
+                    TxHeader.IdType = FDCAN_STANDARD_ID;
+                    TxHeader.TxFrameType = FDCAN_DATA_FRAME;
+                    TxHeader.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
+                    TxHeader.BitRateSwitch = FDCAN_BRS_OFF;
+                    TxHeader.FDFormat = FDCAN_CLASSIC_CAN;
+                    TxHeader.TxEventFifoControl = FDCAN_NO_TX_EVENTS;
+                    TxHeader.MessageMarker = 0;
+
+                    if (HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &TxHeader, u.data.payload) != HAL_OK)
                     {
-                    case 0x235:
-                    {
-                        uint32_t timestamp = u32::from_bytes<uint32_t>(u.data.payload, 0, 1);
-                        uint16_t voltage = u16::from_bytes<uint16_t>(u.data.payload, 4, 1);
-                        uint8_t percentage = u.data.payload[6];
-                        uint8_t status = u.data.payload[7];
-                        SEGGER_RTT_printf(0, "xnavi : Status(timestamp:%d[ms],voltage=%d[mV],percentage=%d[%%],status=%d)\n", timestamp, voltage, percentage, status);
+                        Error_Handler();
                     }
-                    break;
-                    default:
-                    {
-                    }
-                    break;
-                    }
+                    while (HAL_FDCAN_GetTxFifoFreeLevel(&hfdcan1) != 3)
+                        ;
                 }
                 SEGGER_RTT_printf(0, "cobs : [ ");
                 for (size_t i = 0; i < size; i++)
@@ -233,11 +234,7 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
         }
         canPacket.id = fdcan1RxHeader.Identifier;
         canPacket.size = fdcan1RxHeader.DataLength;
-        if (canPacket.size > 8)
-        {
-            canPacket.size = 8; // Limit size to 64 bytes
-        }
-        for (int32_t i = 0; i < canPacket.size; i++)
+        for (size_t i = 0; i < canPacket.size; i++)
         {
             canPacket.payload[i] = fdcan1RxData[i];
         }
