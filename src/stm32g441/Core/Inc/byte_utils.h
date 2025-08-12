@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <stddef.h>
 
 namespace
 {
@@ -18,10 +19,10 @@ namespace u16
             T t;
             uint8_t raw[4];
         } u;
-        if (is_little & endian)
+        if (is_little != endian)
         {
-            u.raw[0] = bytes[offset];
-            u.raw[1] = bytes[offset + 1];
+            u.raw[0] = bytes[offset+1];
+            u.raw[1] = bytes[offset];
         }
         else
         {

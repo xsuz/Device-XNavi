@@ -34,7 +34,11 @@ namespace sd_logger
     char filename[128];
     void inline get_filename();
 
+    
+    uint8_t cobs_buf_idx = 0;
+    uint8_t cobs_buf[256];
     void inline write_raw(uint8_t);
+    void inline write_partial(const uint8_t *buffer,size_t size);
 
     void task(void *pvParam)
     {
@@ -115,65 +119,39 @@ namespace sd_logger
         sprintf(sd_logger::filename, "log_%d%02d%02d_%02d%02d%02d.bin", year, month, day, hour, minutes, seconds);
     }
 
-    void write_pkt(const uint8_t *buffer, size_t size,int64_t timestamp)
+    
+    void write_pkt(uint32_t id, const uint8_t *buffer, size_t size,int64_t timestamp)
     {
-
+        union
+        {
+            uint32_t id;
+            uint8_t bytes[8];
+        } i2u;
         union
         {
             int64_t timestamp;
             uint8_t bytes[8];
         } t2u;
-
-        uint8_t cobs_buf_idx = 0;
-        uint8_t cobs_buf[256];
+        
+        i2u.id=id;
+        t2u.timestamp=timestamp;
+        u32::to_be(&i2u.id);
+        u64::to_be(&t2u.timestamp);
 
         if (!state||!sys_clock::is_valid()||BOOTSEL)
         {
             return;
         }
 
-        t2u.timestamp = timestamp;
-        swap64<int64_t>(&t2u.timestamp);
-
         if (size == 0)
         {
             return;
         }
         xSemaphoreTake(sd_logger::xSemaphore, (TickType_t)portMAX_DELAY);
-        for (uint8_t i = 0; i < sizeof(t2u.timestamp); i++)
-        {
-            if (t2u.bytes[i] == 0x00)
-            {
-                sd_logger::write_raw(cobs_buf_idx + 1);
-                for (uint8_t j = 0; j < cobs_buf_idx; j++)
-                {
-                    sd_logger::write_raw(cobs_buf[j]);
-                }
-                cobs_buf_idx = 0;
-            }
-            else
-            {
-                cobs_buf[cobs_buf_idx] = t2u.bytes[i];
-                cobs_buf_idx++;
-            }
-        }
-        for (uint8_t i = 0; i < size; i++)
-        {
-            if (buffer[i] == 0x00)
-            {
-                sd_logger::write_raw(cobs_buf_idx + 1);
-                for (uint8_t j = 0; j < cobs_buf_idx; j++)
-                {
-                    sd_logger::write_raw(cobs_buf[j]);
-                }
-                cobs_buf_idx = 0;
-            }
-            else
-            {
-                cobs_buf[cobs_buf_idx] = buffer[i];
-                cobs_buf_idx++;
-            }
-        }
+        cobs_buf_idx=0;
+        write_partial(t2u.bytes,8);
+        write_partial(i2u.bytes,4);
+        write_partial(buffer,size);
         sd_logger::write_raw(cobs_buf_idx + 1);
         for (uint8_t j = 0; j < cobs_buf_idx; j++)
         {
@@ -181,6 +159,58 @@ namespace sd_logger
         }
         sd_logger::write_raw(0x00);
         xSemaphoreGive(sd_logger::xSemaphore);
+    }
+
+    void write_bytes(const uint8_t *buffer, size_t size,int64_t timestamp)
+    {
+        union
+        {
+            int64_t timestamp;
+            uint8_t bytes[8];
+        } t2u;
+        t2u.timestamp=timestamp;
+        u64::to_be(&t2u.timestamp);
+
+        if (!state||!sys_clock::is_valid()||BOOTSEL)
+        {
+            return;
+        }
+
+        if (size == 0)
+        {
+            return;
+        }
+        xSemaphoreTake(sd_logger::xSemaphore, (TickType_t)portMAX_DELAY);
+        cobs_buf_idx=0;
+        write_partial(t2u.bytes,8);
+        write_partial(buffer,size);
+        sd_logger::write_raw(cobs_buf_idx + 1);
+        for (uint8_t j = 0; j < cobs_buf_idx; j++)
+        {
+            sd_logger::write_raw(cobs_buf[j]);
+        }
+        sd_logger::write_raw(0x00);
+        xSemaphoreGive(sd_logger::xSemaphore);
+    }
+
+    void inline write_partial(const uint8_t *buffer,size_t size){
+        for (uint8_t i = 0; i < size; i++)
+        {
+            if (buffer[i] == 0x00)
+            {
+                sd_logger::write_raw(sd_logger::cobs_buf_idx + 1);
+                for (uint8_t j = 0; j < sd_logger::cobs_buf_idx; j++)
+                {
+                    sd_logger::write_raw(sd_logger::cobs_buf[j]);
+                }
+                sd_logger::cobs_buf_idx = 0;
+            }
+            else
+            {
+                sd_logger::cobs_buf[sd_logger::cobs_buf_idx] = buffer[i];
+                sd_logger::cobs_buf_idx++;
+            }
+        }
     }
 
     void inline write_raw(uint8_t data)

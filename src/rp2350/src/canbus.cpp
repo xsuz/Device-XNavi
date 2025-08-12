@@ -17,12 +17,12 @@ namespace canbus
 
     void onPacketReceived(const uint8_t *buffer, size_t size)
     {
-        // SEGGER_RTT_printf(0, "canbus : size %d [bytes]  packet [ ", size);
-        // for(int i=0;i<size;i++){
-        //     SEGGER_RTT_printf(0,"0x%02x ",buffer[i]);
-        // }
-        // SEGGER_RTT_printf(0,"]\n");
-        sd_logger::write_pkt(buffer, size,sys_clock::get_timestamp());
+        SEGGER_RTT_printf(0, "canbus : size %d [bytes]  packet [ ", size);
+        for(int i=0;i<size;i++){
+            SEGGER_RTT_printf(0,"0x%02x ",buffer[i]);
+        }
+        SEGGER_RTT_printf(0,"]\n");
+        sd_logger::write_bytes(buffer, size,sys_clock::get_timestamp());
     }
 
     void task(void *pvParam)
@@ -35,6 +35,7 @@ namespace canbus
         Serial2.setFIFOSize(1024);
         Serial2.begin(230400);
         ps.setStream(&Serial2);
+        Serial2.flush();
         ps.setPacketHandler(&onPacketReceived);
         canQueue = xQueueCreate(20, sizeof(DeviceData::CANPacket));
         SEGGER_RTT_WriteString(0, "canbus : Serial2 initialized.\n");

@@ -111,28 +111,27 @@ namespace imu
                 // Update quaternion using Madgwick filter
                 madgwick::update_imu(spkt.data.w_x, spkt.data.w_y, spkt.data.w_z, spkt.data.a_x, spkt.data.a_y, spkt.data.a_z, quat);
 
-                swap32<uint32_t>(&spkt.data.id);
-                swap32<uint32_t>(&spkt.data.timestamp);
-                swap32<float>(&spkt.data.a_x);
-                swap32<float>(&spkt.data.a_y);
-                swap32<float>(&spkt.data.a_z);
-                swap32<float>(&spkt.data.w_x);
-                swap32<float>(&spkt.data.w_y);
-                swap32<float>(&spkt.data.w_z);
-                sd_logger::write_pkt(spkt.bytes, sizeof(spkt.bytes),utc);
+                u32::to_be(&spkt.data.timestamp);
+                u32::to_be(&spkt.data.a_x);
+                u32::to_be(&spkt.data.a_y);
+                u32::to_be(&spkt.data.a_z);
+                u32::to_be(&spkt.data.w_x);
+                u32::to_be(&spkt.data.w_y);
+                u32::to_be(&spkt.data.w_z);
+
+                sd_logger::write_pkt(DeviceData::SensorType::IMU, spkt.bytes, sizeof(spkt.bytes),utc);
 
                 union
                 {
                     DeviceData::AttitudeData data;
                     uint8_t bytes[sizeof(data)];
                 } spkt_att;
-                spkt_att.data.id = DeviceData::SensorType::Attitude; // IMU device ID
                 spkt_att.data.timestamp = spkt.data.timestamp;
-                spkt_att.data.q0 = quat[0];
-                spkt_att.data.q1 = quat[1];
-                spkt_att.data.q2 = quat[2];
-                spkt_att.data.q3 = quat[3];
-                sd_logger::write_pkt(spkt_att.bytes, sizeof(spkt_att.bytes),utc);
+                spkt_att.data.q0 = u32::to_be(quat[0]);
+                spkt_att.data.q1 = u32::to_be(quat[1]);
+                spkt_att.data.q2 = u32::to_be(quat[2]);
+                spkt_att.data.q3 = u32::to_be(quat[3]);
+                sd_logger::write_pkt(DeviceData::SensorType::Attitude, spkt_att.bytes, sizeof(spkt_att.bytes),utc);
 
 
                 // Byte order conversion
@@ -151,7 +150,6 @@ namespace imu
         int16_t acc[3], gyr[3];
         asm330lhh.Get_X_AxesRaw(acc);
         asm330lhh.Get_G_AxesRaw(gyr);
-        spkt.data.id = DeviceData::SensorType::IMU; // IMU device ID
         spkt.data.timestamp = millis();
         spkt.data.a_x = acc[0] * acc_sensitivity;  // a_x(m/s^2)
         spkt.data.a_y = acc[1] * acc_sensitivity;  // a_y(m/s^2)

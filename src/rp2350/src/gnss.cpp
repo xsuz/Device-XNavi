@@ -42,7 +42,6 @@ namespace gnss
         }
         int64_t utc = sys_clock::get_timestamp();
         
-        data.id = DeviceData::SensorType::GPS;
         data.latitude = pvt.lat;
         data.longitude = pvt.lon;
         data.altitude = pvt.height;
@@ -137,18 +136,17 @@ namespace gnss
                 //                   spkt.data.fixType, spkt.data.pDOP);
 
                 // バイトオーダーを変換
-                swap32<uint32_t>(&spkt.data.id);
-                swap32<int32_t>(&spkt.data.latitude);
-                swap32<int32_t>(&spkt.data.longitude);
-                swap32<int32_t>(&spkt.data.altitude);
-                swap32<int32_t>(&spkt.data.velN);
-                swap32<int32_t>(&spkt.data.velE);
-                swap32<int32_t>(&spkt.data.velD);
-                swap32<uint32_t>(&spkt.data.timestamp);
-                swap32<uint32_t>(&spkt.data.hAcc);
-                swap32<uint32_t>(&spkt.data.vAcc);
-                swap16<uint16_t>(&spkt.data.pDOP);
-                sd_logger::write_pkt(spkt.bytes, sizeof(spkt.bytes), utc);
+                u32::to_be(&spkt.data.latitude);
+                u32::to_be(&spkt.data.longitude);
+                u32::to_be(&spkt.data.altitude);
+                u32::to_be(&spkt.data.velN);
+                u32::to_be(&spkt.data.velE);
+                u32::to_be(&spkt.data.velD);
+                u32::to_be(&spkt.data.timestamp);
+                u32::to_be(&spkt.data.hAcc);
+                u32::to_be(&spkt.data.vAcc);
+                u16::to_be(&spkt.data.pDOP);
+                sd_logger::write_pkt(DeviceData::SensorType::GPS, spkt.bytes, sizeof(spkt.bytes), utc);
             }
             vTaskDelay(10); // 10ms待機
         }

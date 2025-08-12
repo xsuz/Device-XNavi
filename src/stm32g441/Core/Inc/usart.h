@@ -21,10 +21,6 @@
 #ifndef __USART_H__
 #define __USART_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 
@@ -46,10 +42,6 @@ int available();
 uint8_t read();
 
 /* USER CODE END Prototypes */
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* __USART_H__ */
 
