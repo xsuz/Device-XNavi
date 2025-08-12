@@ -22,10 +22,10 @@
 #include "task.h"
 #include "main.h"
 #include "cmsis_os.h"
-#include "queue.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "queue.h"
 #include "fdcan.h"
 #include "usart.h"
 #include "SEGGER_RTT.h"
@@ -51,21 +51,21 @@
 /* USER CODE BEGIN Variables */
 
 QueueHandle_t xQueueCANPacketHandle;
+TaskHandle_t defaultTaskHandle;
 
 /* USER CODE END Variables */
 /* Definitions for defaultTask */
-osThreadId_t defaultTaskHandle;
-const osThreadAttr_t defaultTask_attributes = {
-    .name = "defaultTask",
-    .priority = (osPriority_t)osPriorityNormal,
-    .stack_size = 128 * 4};
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
+
 /// @brief Send packet via UART with COBS encoding
 /// @param data Pointer to the data to send
 /// @param size Size of the data to send
 void send_pkt(uint8_t *data, uint32_t size);
+
+void StartUartPollingTask(void *argument);
+
 /* USER CODE END FunctionPrototypes */
 
 void StartDefaultTask(void *argument);
@@ -73,12 +73,11 @@ void StartDefaultTask(void *argument);
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
 /**
- * @brief  FreeRTOS initialization
- * @param  None
- * @retval None
- */
-void MX_FREERTOS_Init(void)
-{
+  * @brief  FreeRTOS initialization
+  * @param  None
+  * @retval None
+  */
+void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
 
   /* USER CODE END Init */
@@ -106,15 +105,15 @@ void MX_FREERTOS_Init(void)
 
   /* Create the thread(s) */
   /* creation of defaultTask */
-  defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
-  /* add threads, ... */
+  xTaskCreate(StartDefaultTask,"defaultTask",128,NULL,osPriorityNormal,&defaultTaskHandle);
   /* USER CODE END RTOS_THREADS */
 
   /* USER CODE BEGIN RTOS_EVENTS */
   /* add events, ... */
   /* USER CODE END RTOS_EVENTS */
+
 }
 
 /* USER CODE BEGIN Header_StartDefaultTask */
@@ -157,6 +156,16 @@ void StartDefaultTask(void *argument)
 
 /* Private application code --------------------------------------------------*/
 /* USER CODE BEGIN Application */
+
+void StartUartPollingTask(void *argument)
+{
+  /* USER CODE BEGIN StartUartPollingTask */
+  /* Infinite loop */
+  for (;;)
+  {
+  }
+  /* USER CODE END StartUartPollingTask */
+}
 
 void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
 {
@@ -231,3 +240,4 @@ void send_pkt(uint8_t *data, uint32_t size)
 }
 
 /* USER CODE END Application */
+
