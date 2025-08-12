@@ -6,7 +6,7 @@
 
 #include "madgwick.hpp"
 
-#include "SensorPacket.h"
+#include "DeviceData.h"
 #include "byte_utils.h"
 #include "sd_logger.h"
 #include "clock.h"
@@ -73,7 +73,7 @@ namespace imu
         SEGGER_RTT_WriteString(0, "imu : ASM330LHH enabled for accelerometer and gyroscope.\n");
 
         // Initialize the queue for IMU data
-        imuQueue = xQueueCreate(10, sizeof(IMUData));
+        imuQueue = xQueueCreate(10, sizeof(DeviceData::IMUData));
         utcQueue = xQueueCreate(10, sizeof(int64_t));
         if (imuQueue == NULL)
         {
@@ -91,7 +91,7 @@ namespace imu
         {
             union
             {
-                IMUData data;
+                DeviceData::IMUData data;
                 uint8_t bytes[sizeof(data)];
             } spkt;
             int64_t utc;
@@ -123,10 +123,10 @@ namespace imu
 
                 union
                 {
-                    AttitudeData data;
+                    DeviceData::AttitudeData data;
                     uint8_t bytes[sizeof(data)];
                 } spkt_att;
-                spkt_att.data.id = SensorType::Attitude; // IMU device ID
+                spkt_att.data.id = DeviceData::SensorType::Attitude; // IMU device ID
                 spkt_att.data.timestamp = spkt.data.timestamp;
                 spkt_att.data.q0 = quat[0];
                 spkt_att.data.q1 = quat[1];
@@ -144,14 +144,14 @@ namespace imu
     {
         union
         {
-            IMUData data;
+            DeviceData::IMUData data;
             uint8_t bytes[sizeof(data)];
         } spkt;
         int64_t utc;
         int16_t acc[3], gyr[3];
         asm330lhh.Get_X_AxesRaw(acc);
         asm330lhh.Get_G_AxesRaw(gyr);
-        spkt.data.id = SensorType::IMU; // IMU device ID
+        spkt.data.id = DeviceData::SensorType::IMU; // IMU device ID
         spkt.data.timestamp = millis();
         spkt.data.a_x = acc[0] * acc_sensitivity;  // a_x(m/s^2)
         spkt.data.a_y = acc[1] * acc_sensitivity;  // a_y(m/s^2)

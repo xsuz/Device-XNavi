@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#include "SensorPacket.h"
+#include "DeviceData.h"
 
 namespace canbus {
     /// @brief TWELITE受信タスク
@@ -11,5 +11,5 @@ namespace canbus {
     void task(void* pvParam);
     /// @brief CANパケットの送信
     /// @param pkt 
-    void write_pkt(CANPacket pkt);
+    void write_pkt(DeviceData::CANPacket pkt);
 };

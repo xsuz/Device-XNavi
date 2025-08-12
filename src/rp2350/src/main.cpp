@@ -10,7 +10,6 @@
 #include "imu.h"
 #include "canbus.h"
 #include "monitor.h"
-#include "SensorPacket.h"
 #include "clock.h"
 
 TaskHandle_t Task1;

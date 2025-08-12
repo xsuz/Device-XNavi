@@ -4,7 +4,7 @@
 #include <queue.h>
 
 #include "gnss.h"
-#include "SensorPacket.h"
+#include "DeviceData.h"
 #include "byte_utils.h"
 #include "sd_logger.h"
 #include "clock.h"
@@ -35,14 +35,14 @@ namespace gnss
     void pvt_callback(ubx::NAV_PVT pvt)
     {
         digitalWrite(LED, HIGH);
-        GPSData data;
+        DeviceData::GPSData data;
         if (pvt.valid.bits.validDate && pvt.valid.bits.validTime && tick_last_pps > 0)
         {
             sys_clock::set_timestamp_offset(tick_last_pps, pvt.year, pvt.month, pvt.day, pvt.hour, pvt.min, pvt.sec);
         }
         int64_t utc = sys_clock::get_timestamp();
         
-        data.id = SensorType::GPS;
+        data.id = DeviceData::SensorType::GPS;
         data.latitude = pvt.lat;
         data.longitude = pvt.lon;
         data.altitude = pvt.height;
@@ -96,7 +96,7 @@ namespace gnss
         Serial1.flush();       // 無効なデータを破棄
         Serial1.begin(115200); // baudrate 115200で再度UART0を初期化
 
-        gnssQueue = xQueueCreate(5, sizeof(GPSData));
+        gnssQueue = xQueueCreate(5, sizeof(DeviceData::GPSData));
         utcQueue = xQueueCreate(5, sizeof(int64_t));
 
         if (gnssQueue == NULL)
@@ -121,7 +121,7 @@ namespace gnss
         {
             union
             {
-                GPSData data;
+                DeviceData::GPSData data;
                 uint8_t bytes[sizeof(data)];
             } spkt;
             int64_t utc;

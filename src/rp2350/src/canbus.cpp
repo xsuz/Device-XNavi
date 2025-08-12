@@ -36,7 +36,7 @@ namespace canbus
         Serial2.begin(230400);
         ps.setStream(&Serial2);
         ps.setPacketHandler(&onPacketReceived);
-        canQueue = xQueueCreate(20, sizeof(CANPacket));
+        canQueue = xQueueCreate(20, sizeof(DeviceData::CANPacket));
         SEGGER_RTT_WriteString(0, "canbus : Serial2 initialized.\n");
 
         // TWELITEからのデータ受信ループ
@@ -45,7 +45,7 @@ namespace canbus
             ps.update(); // 受信データの更新
             while (uxQueueMessagesWaiting(canQueue) > 0)
             {
-                uint8_t raw[sizeof(CANPacket)];
+                uint8_t raw[sizeof(DeviceData::CANPacket)];
                 if (xQueueReceive(canQueue, &raw, 0) == pdTRUE)
                 {
                     ps.send(raw, sizeof(raw)); // パケットを送信
@@ -54,7 +54,7 @@ namespace canbus
             vTaskDelay(1); // CPU負荷を下げるために少し待機
         }
     }
-    void write_pkt(CANPacket pkt)
+    void write_pkt(DeviceData::CANPacket pkt)
     {
         if (canQueue != NULL)
         {

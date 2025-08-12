@@ -6,15 +6,15 @@
 #include "monitor.h"
 #include "sd_logger.h"
 #include "SEGGER_RTT.h"
-#include "SensorPacket.h"
+#include "DeviceData.h"
 #include "clock.h"
 
 namespace monitor
 {
     union
     {
-        LoggerStatus status;
-        uint8_t raw[sizeof(LoggerStatus)];
+        DeviceData::XNaviStatus status;
+        uint8_t raw[sizeof(status)];
     } u;
 
     /// @brief ログの状態を表す構造体
