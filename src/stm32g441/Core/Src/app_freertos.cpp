@@ -151,6 +151,7 @@ void StartDefaultTask(void *argument)
             }
             HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
         }
+        vTaskDelay(pdMS_TO_TICKS(10)); // Delay for 1000 ms
     }
     /* USER CODE END StartDefaultTask */
 }
@@ -180,7 +181,7 @@ void StartUartPollingTask(void *argument)
             size_t size = cobs::decode(rx_buf, buf_size, &start_idx, end_idx, decoded);
             if (size > 0)
             {
-                if (size == sizeof(u.raw))
+                if (size <= sizeof(u.raw))
                 {
                     for (size_t i = 0; i < size; i++)
                     {
@@ -197,13 +198,15 @@ void StartUartPollingTask(void *argument)
                     TxHeader.FDFormat = FDCAN_CLASSIC_CAN;
                     TxHeader.TxEventFifoControl = FDCAN_NO_TX_EVENTS;
                     TxHeader.MessageMarker = 0;
-
-                    if (HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &TxHeader, u.data.payload) != HAL_OK)
+                    if (u.data.size <= 64)
                     {
-                        Error_Handler();
+                        if (HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &TxHeader, u.data.payload) != HAL_OK)
+                        {
+                            Error_Handler();
+                        }
+                        while (HAL_FDCAN_GetTxFifoFreeLevel(&hfdcan1) != 3)
+                            ;
                     }
-                    while (HAL_FDCAN_GetTxFifoFreeLevel(&hfdcan1) != 3)
-                        ;
                 }
                 SEGGER_RTT_printf(0, "cobs : [ ");
                 for (size_t i = 0; i < size; i++)
@@ -213,7 +216,7 @@ void StartUartPollingTask(void *argument)
                 SEGGER_RTT_printf(0, "]\n");
             }
         }
-        vTaskDelay(1); // Poll every 1000 ms
+        vTaskDelay(10); // Poll every 1000 ms
     }
     /* USER CODE END StartUartPollingTask */
 }
