@@ -88,6 +88,8 @@ int main(void)
 
   /* USER CODE BEGIN SysInit */
 
+  HAL_Delay(2000);
+
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */

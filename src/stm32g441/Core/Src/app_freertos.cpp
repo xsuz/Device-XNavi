@@ -151,7 +151,7 @@ void StartDefaultTask(void *argument)
             }
             HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
         }
-        vTaskDelay(pdMS_TO_TICKS(10)); // Delay for 1000 ms
+        vTaskDelay(pdMS_TO_TICKS(10)); // Delay for 10 ms
     }
     /* USER CODE END StartDefaultTask */
 }
