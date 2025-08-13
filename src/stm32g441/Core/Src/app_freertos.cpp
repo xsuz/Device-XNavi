@@ -171,12 +171,19 @@ void StartUartPollingTask(void *argument)
         DeviceData::CANPacket data;
         uint8_t raw[sizeof(data)];
     } u;
-    size_t start_idx = 0, end_idx = 0;
+    size_t start_idx = 0, end_idx = 0,len=0;
     for (;;)
     {
         while (available())
         {
             rx_buf[end_idx] = read();
+            len++;
+            if(len>=buf_size)
+            {
+                SEGGER_RTT_printf(0,"Buffer overflow detected\n");
+                start_idx=0;
+                end_idx=0;
+            }
             end_idx = (end_idx + 1) % buf_size;
             size_t size = cobs::decode(rx_buf, buf_size, &start_idx, end_idx, decoded);
             if (size > 0)
@@ -194,12 +201,13 @@ void StartUartPollingTask(void *argument)
                     TxHeader.IdType = FDCAN_STANDARD_ID;
                     TxHeader.TxFrameType = FDCAN_DATA_FRAME;
                     TxHeader.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
-                    TxHeader.BitRateSwitch = FDCAN_BRS_OFF;
-                    TxHeader.FDFormat = FDCAN_CLASSIC_CAN;
+                    TxHeader.BitRateSwitch = FDCAN_BRS_ON;
+                    TxHeader.FDFormat = FDCAN_FD_CAN;
                     TxHeader.TxEventFifoControl = FDCAN_NO_TX_EVENTS;
                     TxHeader.MessageMarker = 0;
-                    if (u.data.size <= 64)
+                    if (u.data.size <= 64 && u.data.size > 0)
                     {
+                        SEGGER_RTT_printf(0, "Sending CAN message: id=0x%X size=%d\n ", u.data.id, u.data.size);
                         if (HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &TxHeader, u.data.payload) != HAL_OK)
                         {
                             Error_Handler();
@@ -208,6 +216,7 @@ void StartUartPollingTask(void *argument)
                             ;
                     }
                 }
+                len=0;
                 SEGGER_RTT_printf(0, "cobs : [ ");
                 for (size_t i = 0; i < size; i++)
                 {
