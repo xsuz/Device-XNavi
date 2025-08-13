@@ -135,8 +135,8 @@ namespace sd_logger
         
         i2u.id=id;
         t2u.timestamp=timestamp;
-        u32::to_be(&i2u.id);
-        u64::to_be(&t2u.timestamp);
+        u32::to_le(&i2u.id);
+        u64::to_le(&t2u.timestamp);
 
         if (!state||!sys_clock::is_valid()||BOOTSEL)
         {
@@ -169,7 +169,7 @@ namespace sd_logger
             uint8_t bytes[8];
         } t2u;
         t2u.timestamp=timestamp;
-        u64::to_be(&t2u.timestamp);
+        u64::to_le(&t2u.timestamp);
 
         if (!state||!sys_clock::is_valid()||BOOTSEL)
         {

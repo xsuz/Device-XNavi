@@ -10,6 +10,7 @@
 #include "byte_utils.h"
 #include "sd_logger.h"
 #include "clock.h"
+#include "canbus.h"
 
 #include <SEGGER_RTT.h>
 
@@ -111,13 +112,13 @@ namespace imu
                 // Update quaternion using Madgwick filter
                 madgwick::update_imu(spkt.data.w_x, spkt.data.w_y, spkt.data.w_z, spkt.data.a_x, spkt.data.a_y, spkt.data.a_z, quat);
 
-                u32::to_be(&spkt.data.timestamp);
-                u32::to_be(&spkt.data.a_x);
-                u32::to_be(&spkt.data.a_y);
-                u32::to_be(&spkt.data.a_z);
-                u32::to_be(&spkt.data.w_x);
-                u32::to_be(&spkt.data.w_y);
-                u32::to_be(&spkt.data.w_z);
+                u32::to_le(&spkt.data.timestamp);
+                u32::to_le(&spkt.data.a_x);
+                u32::to_le(&spkt.data.a_y);
+                u32::to_le(&spkt.data.a_z);
+                u32::to_le(&spkt.data.w_x);
+                u32::to_le(&spkt.data.w_y);
+                u32::to_le(&spkt.data.w_z);
 
                 sd_logger::write_pkt(DeviceData::SensorType::IMU, spkt.bytes, sizeof(spkt.bytes),utc);
 
@@ -127,14 +128,11 @@ namespace imu
                     uint8_t bytes[sizeof(data)];
                 } spkt_att;
                 spkt_att.data.timestamp = spkt.data.timestamp;
-                spkt_att.data.q0 = u32::to_be(quat[0]);
-                spkt_att.data.q1 = u32::to_be(quat[1]);
-                spkt_att.data.q2 = u32::to_be(quat[2]);
-                spkt_att.data.q3 = u32::to_be(quat[3]);
+                spkt_att.data.q0 = u32::to_le(quat[0]);
+                spkt_att.data.q1 = u32::to_le(quat[1]);
+                spkt_att.data.q2 = u32::to_le(quat[2]);
+                spkt_att.data.q3 = u32::to_le(quat[3]);
                 sd_logger::write_pkt(DeviceData::SensorType::Attitude, spkt_att.bytes, sizeof(spkt_att.bytes),utc);
-
-
-                // Byte order conversion
             }
             vTaskDelay(20); // Delay to prevent busy-waiting
         }

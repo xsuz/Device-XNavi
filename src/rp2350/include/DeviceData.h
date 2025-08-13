@@ -7,10 +7,10 @@ namespace DeviceData
 
     enum SensorType
     {
-        XNavi = 0x00000000,
-        GPS = 0x60000000,      // GPSデータ
-        IMU = 0x40000000,      // IMUデータ
-        Attitude = 0xA0000000, // 姿勢データ
+        GPS = 0x30,      // GPSデータ
+        IMU = 0x40,      // IMUデータ
+        XNavi = 0xA0,    // XNaviデータ
+        Attitude = 0xB0, // 姿勢データ
     };
 
     /// @brief GPSのDeviceData
@@ -77,7 +77,7 @@ namespace DeviceData
         /// @brief CANのデータのサイズ
         uint32_t size;
         /// @brief CANのデータ
-        uint8_t payload[8];
+        uint8_t payload[64];
     };
 
     struct XNaviStatus

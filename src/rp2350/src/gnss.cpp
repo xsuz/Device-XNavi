@@ -8,6 +8,7 @@
 #include "byte_utils.h"
 #include "sd_logger.h"
 #include "clock.h"
+#include "canbus.h"
 
 // #include <ctime>
 
@@ -60,6 +61,17 @@ namespace gnss
 
         xQueueSend(gnssQueue, &data, 0);
         xQueueSend(utcQueue, &utc, 0);
+
+        if(pvt.flags.bits.gnssFixOK){
+            DeviceData::CANPacket pkt;
+            pkt.id = DeviceData::SensorType::GPS| 0x01; // GPSデータのCAN ID
+            pkt.size = 12;
+            u32::to_bytes(pkt.payload,0,pvt.lat);
+            u32::to_bytes(pkt.payload, 4, pvt.lon);
+            u32::to_bytes(pkt.payload, 8, pvt.height);
+            canbus::write_pkt(pkt);
+        }
+
         digitalWrite(LED, LOW);
     }
 
@@ -136,16 +148,16 @@ namespace gnss
                 //                   spkt.data.fixType, spkt.data.pDOP);
 
                 // バイトオーダーを変換
-                u32::to_be(&spkt.data.latitude);
-                u32::to_be(&spkt.data.longitude);
-                u32::to_be(&spkt.data.altitude);
-                u32::to_be(&spkt.data.velN);
-                u32::to_be(&spkt.data.velE);
-                u32::to_be(&spkt.data.velD);
-                u32::to_be(&spkt.data.timestamp);
-                u32::to_be(&spkt.data.hAcc);
-                u32::to_be(&spkt.data.vAcc);
-                u16::to_be(&spkt.data.pDOP);
+                u32::to_le(&spkt.data.latitude);
+                u32::to_le(&spkt.data.longitude);
+                u32::to_le(&spkt.data.altitude);
+                u32::to_le(&spkt.data.velN);
+                u32::to_le(&spkt.data.velE);
+                u32::to_le(&spkt.data.velD);
+                u32::to_le(&spkt.data.timestamp);
+                u32::to_le(&spkt.data.hAcc);
+                u32::to_le(&spkt.data.vAcc);
+                u16::to_le(&spkt.data.pDOP);
                 sd_logger::write_pkt(DeviceData::SensorType::GPS, spkt.bytes, sizeof(spkt.bytes), utc);
             }
             vTaskDelay(10); // 10ms待機

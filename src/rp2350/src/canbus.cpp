@@ -46,10 +46,13 @@ namespace canbus
             ps.update(); // 受信データの更新
             while (uxQueueMessagesWaiting(canQueue) > 0)
             {
-                uint8_t raw[sizeof(DeviceData::CANPacket)];
-                if (xQueueReceive(canQueue, &raw, 0) == pdTRUE)
+                union{
+                    DeviceData::CANPacket pkt;
+                    uint8_t raw[sizeof(DeviceData::CANPacket)];
+                } u;
+                if (xQueueReceive(canQueue, &u.raw, 0) == pdTRUE)
                 {
-                    ps.send(raw, sizeof(raw)); // パケットを送信
+                    ps.send(u.raw, u.pkt.size+8); // パケットを送信
                 }
             }
             vTaskDelay(1); // CPU負荷を下げるために少し待機

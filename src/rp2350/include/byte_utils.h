@@ -346,10 +346,9 @@ namespace u64
     template <typename T>
     void to_le(T *t)
     {
-        T val = t;
         if (!is_little)
         {
-            swap(&val);
+            swap(t);
         }
     }
 };
