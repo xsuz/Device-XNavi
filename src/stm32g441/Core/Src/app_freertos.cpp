@@ -140,7 +140,7 @@ void StartDefaultTask(void *argument)
             HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
             if (xQueueReceive(xQueueCANPacketHandle, &u.data, portMAX_DELAY) == pdTRUE)
             {
-                SEGGER_RTT_printf(0, "Received CAN message: id=0x%X data=[ ", u.data.id);
+                SEGGER_RTT_printf(0, "Received CAN message: id=0x%X size=%d data=[ ", u.data.id, u.data.size);
                 for (size_t i = 0; i < u.data.size; i++)
                 {
                     SEGGER_RTT_printf(0, "0x%02X ", u.data.payload[i]);
@@ -165,7 +165,7 @@ void StartUartPollingTask(void *argument)
     /* Infinite loop */
     SEGGER_RTT_printf(0, "UART Polling Task started\n");
     constexpr size_t buf_size = 256;
-    uint8_t rx_buf[buf_size], decoded[128];
+    uint8_t rx_buf[buf_size], decoded[buf_size];
     union
     {
         DeviceData::CANPacket data;
@@ -174,9 +174,9 @@ void StartUartPollingTask(void *argument)
     size_t start_idx = 0, end_idx = 0,len=0;
     for (;;)
     {
-        while (available())
+        while (uart2::available())
         {
-            rx_buf[end_idx] = read();
+            rx_buf[end_idx] = uart2::read();
             len++;
             if(len>=buf_size)
             {
@@ -197,14 +197,50 @@ void StartUartPollingTask(void *argument)
 
                     FDCAN_TxHeaderTypeDef TxHeader;
                     TxHeader.Identifier = u.data.id;
-                    TxHeader.DataLength = u.data.size;
                     TxHeader.IdType = FDCAN_STANDARD_ID;
                     TxHeader.TxFrameType = FDCAN_DATA_FRAME;
                     TxHeader.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
-                    TxHeader.BitRateSwitch = FDCAN_BRS_ON;
-                    TxHeader.FDFormat = FDCAN_FD_CAN;
                     TxHeader.TxEventFifoControl = FDCAN_NO_TX_EVENTS;
                     TxHeader.MessageMarker = 0;
+                    if (u.data.size <= 8)
+                    {
+                        TxHeader.BitRateSwitch = FDCAN_BRS_OFF;
+                        TxHeader.FDFormat = FDCAN_CLASSIC_CAN;
+                        TxHeader.DataLength = u.data.size;
+                    }
+                    else
+                    {
+                        TxHeader.BitRateSwitch = FDCAN_BRS_ON;
+                        TxHeader.FDFormat = FDCAN_FD_CAN;
+                        if (u.data.size <= 12)
+                        {
+                            TxHeader.DataLength = FDCAN_DLC_BYTES_12;
+                        }
+                        else if (u.data.size <= 16)
+                        {
+                            TxHeader.DataLength = FDCAN_DLC_BYTES_16;
+                        }
+                        else if (u.data.size <= 20)
+                        {
+                            TxHeader.DataLength = FDCAN_DLC_BYTES_20;
+                        }
+                        else if (u.data.size <= 24)
+                        {
+                            TxHeader.DataLength = FDCAN_DLC_BYTES_24;
+                        }
+                        else if (u.data.size <= 32)
+                        {
+                            TxHeader.DataLength = FDCAN_DLC_BYTES_32;
+                        }
+                        else if (u.data.size <= 48)
+                        {
+                            TxHeader.DataLength = FDCAN_DLC_BYTES_48;
+                        }
+                        else if (u.data.size <= 64)
+                        {
+                            TxHeader.DataLength = FDCAN_DLC_BYTES_64;
+                        }
+                    }
                     if (u.data.size <= 64 && u.data.size > 0)
                     {
                         SEGGER_RTT_printf(0, "Sending CAN message: id=0x%X size=%d\n ", u.data.id, u.data.size);
@@ -245,7 +281,37 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
             Error_Handler();
         }
         canPacket.id = fdcan1RxHeader.Identifier;
-        canPacket.size = fdcan1RxHeader.DataLength;
+        if(fdcan1RxHeader.DataLength<=8){
+            canPacket.size = fdcan1RxHeader.DataLength;
+        }else{
+            switch(fdcan1RxHeader.DataLength)
+            {
+                case FDCAN_DLC_BYTES_12:
+                    canPacket.size = 12;
+                    break;
+                case FDCAN_DLC_BYTES_16:
+                    canPacket.size = 16;
+                    break;
+                case FDCAN_DLC_BYTES_20:
+                    canPacket.size = 20;
+                    break;
+                case FDCAN_DLC_BYTES_24:
+                    canPacket.size = 24;
+                    break;
+                case FDCAN_DLC_BYTES_32:
+                    canPacket.size = 32;
+                    break;
+                case FDCAN_DLC_BYTES_48:
+                    canPacket.size = 48;
+                    break;
+                case FDCAN_DLC_BYTES_64:
+                    canPacket.size = 64;
+                    break;
+                default:
+                    canPacket.size = 0;
+                    break;
+            }
+        }
         for (size_t i = 0; i < canPacket.size; i++)
         {
             canPacket.payload[i] = fdcan1RxData[i];

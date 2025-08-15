@@ -27,20 +27,28 @@ namespace imu
                   SPI1_RX = 12,
                   SPI1_SCK = 14,
                   SPI1_TX = 15;
-    
+
     constexpr int delta_t = 4;
     ASM330LHHSensor asm330lhh(&SPI1, SPI1_CS, 1000000); // SPI1, CS pin 13, SPI speed 1MHz
     float quat[4] = {1.0f, 0.0f, 0.0f, 0.0f};
     constexpr float deg2rad = M_PI / 180.0f;
     constexpr float acc_sensitivity = ASM330LHH_ACC_SENSITIVITY_FS_2G * 0.00980665f;            // m/s^2
     constexpr float gyro_sensitivity = ASM330LHH_GYRO_SENSITIVITY_FS_125DPS * 0.001f * deg2rad; // rad/s
-    
 
     void task(void *pvParam)
     {
+        union
+        {
+            DeviceData::IMUData data;
+            uint8_t bytes[sizeof(data)];
+        } spkt;
+        int64_t utc;
+        DeviceData::CANPacket can_pkt;
+        uint8_t count = 0;
+
         SEGGER_RTT_WriteString(0, "imu : IMU task started.\n");
 
-        while(!sys_clock::is_valid())
+        while (!sys_clock::is_valid())
         {
             // SEGGER_RTT_WriteString(0, "imu : Waiting for system clock to be valid...\n");
             vTaskDelay(1000 / portTICK_PERIOD_MS);
@@ -90,17 +98,11 @@ namespace imu
         SEGGER_RTT_WriteString(0, "imu : IMU timer started.\n");
         while (1)
         {
-            union
-            {
-                DeviceData::IMUData data;
-                uint8_t bytes[sizeof(data)];
-            } spkt;
-            int64_t utc;
             while (uxQueueMessagesWaiting(imuQueue) > 0)
             {
                 xQueueReceive(imuQueue, &spkt.data, 0);
-                xQueueReceive(utcQueue,&utc,0);
-                
+                xQueueReceive(utcQueue, &utc, 0);
+
                 // SEGGER_RTT_printf(0, "imu : accl (%d, %d, %d)[mm/s^2]  gyro (%d, %d, %d)[mdps]\n",
                 //                   (int)(spkt.data.a_x * 1000),            // Convert to mm/s^2
                 //                   (int)(spkt.data.a_y * 1000),            // Convert to mm/s^2
@@ -110,7 +112,7 @@ namespace imu
                 //                   (int)(spkt.data.w_z / deg2rad * 1000)); // Convert to mdps
 
                 // Update quaternion using Madgwick filter
-                madgwick::update_imu(spkt.data.w_x, spkt.data.w_y, spkt.data.w_z, spkt.data.a_x, spkt.data.a_y, spkt.data.a_z, quat);
+                // madgwick::update_imu(spkt.data.w_x, spkt.data.w_y, spkt.data.w_z, spkt.data.a_x, spkt.data.a_y, spkt.data.a_z, quat);
 
                 u32::to_le(&spkt.data.timestamp);
                 u32::to_le(&spkt.data.a_x);
@@ -120,19 +122,16 @@ namespace imu
                 u32::to_le(&spkt.data.w_y);
                 u32::to_le(&spkt.data.w_z);
 
-                sd_logger::write_pkt(DeviceData::SensorType::IMU, spkt.bytes, sizeof(spkt.bytes),utc);
+                sd_logger::write_pkt(DeviceData::SensorType::IMU, spkt.bytes, sizeof(spkt.bytes), utc);
 
-                union
-                {
-                    DeviceData::AttitudeData data;
-                    uint8_t bytes[sizeof(data)];
-                } spkt_att;
-                spkt_att.data.timestamp = spkt.data.timestamp;
-                spkt_att.data.q0 = u32::to_le(quat[0]);
-                spkt_att.data.q1 = u32::to_le(quat[1]);
-                spkt_att.data.q2 = u32::to_le(quat[2]);
-                spkt_att.data.q3 = u32::to_le(quat[3]);
-                sd_logger::write_pkt(DeviceData::SensorType::Attitude, spkt_att.bytes, sizeof(spkt_att.bytes),utc);
+                count++;
+                if(count*delta_t >= 100){
+                    count = 0;
+                    can_pkt.id = DeviceData::SensorType::IMU;
+                    can_pkt.size = sizeof(spkt.bytes);
+                    memcpy(can_pkt.payload, spkt.bytes, sizeof(spkt.bytes));
+                    canbus::write_pkt(can_pkt);
+                }
             }
             vTaskDelay(20); // Delay to prevent busy-waiting
         }
@@ -158,6 +157,6 @@ namespace imu
 
         utc = sys_clock::get_timestamp();
         xQueueSendFromISR(imuQueue, &spkt.data, NULL);
-        xQueueSendFromISR(utcQueue,&utc,NULL);
+        xQueueSendFromISR(utcQueue, &utc, NULL);
     }
 }

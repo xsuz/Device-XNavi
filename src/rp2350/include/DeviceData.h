@@ -29,9 +29,21 @@ namespace DeviceData
         uint32_t vAcc;     // Vertical accuracy estimate: mm
         uint16_t pDOP;     // Position DOP * 0.01
         uint8_t fixType;   // Fix type: 0 = no fix, 1 = dead reckoning only, 2 = 2D-fix, 3 = 3D-fix, 4 = GNSS + dead reckoning combined
-        uint8_t flags;     // Flags: bit 0 = GNSS fix OK,
-                           // bit 1 = differential corrections applied, bit 2 = PSM state, bit 3 = heading of vehicle valid,
-                           // bit 4 = carrier phase range solution status (0 = no solution, 1 = floating, 2 = fixed)
+        union
+        {
+            uint8_t all;
+            struct
+            {
+                uint8_t gnssFixOK : 1; // 1 = valid fix (i.e within DOP & accuracy masks)
+                uint8_t diffSoln : 1;  // 1 = differential corrections were applied
+                uint8_t psmState : 3;
+                uint8_t headVehValid : 1; // 1 = heading of vehicle is valid, only set if the receiver is in sensor fusion mode
+                uint8_t carrSoln : 2;     // Carrier phase range solution status:
+                                          // 0: no carrier phase range solution
+                                          // 1: carrier phase range solution with floating ambiguities
+                                          // 2: carrier phase range solution with fixed ambiguities
+            } bits;
+        } flags;
     };
 
     /// @brief IMUのDeviceData

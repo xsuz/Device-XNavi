@@ -42,12 +42,9 @@ namespace monitor
             sd_logger::write_pkt(DeviceData::SensorType::XNavi ,u.raw, sizeof(u.raw), sys_clock::get_timestamp());
 
             DeviceData::CANPacket pkt;
-            pkt.id=0x235;
-            pkt.size=8;
-            u32::to_bytes(pkt.payload,0,u.status.timestamp,1);
-            u16::to_bytes(pkt.payload,4,u.status.voltage,1);
-            pkt.payload[6]=u.status.percentage;
-            pkt.payload[7]=u.status.status;
+            pkt.id=DeviceData::SensorType::XNavi;
+            pkt.size=sizeof(u.raw);
+            memcpy(pkt.payload,u.raw,sizeof(u.raw));
             canbus::write_pkt(pkt);
 
             vTaskDelay(1000 / portTICK_PERIOD_MS); // 1秒ごとにログを出力

@@ -24,14 +24,6 @@
 
 #include "SEGGER_RTT.h"
 
-#define USART_RX_BUFFSIZE 1024
-namespace
-{
-    static uint8_t RxBuff[USART_RX_BUFFSIZE];
-    static uint32_t rd_ptr;
-}
-#define DMA_WRITE_PTR ((USART_RX_BUFFSIZE - __HAL_DMA_GET_COUNTER(huart2.hdmarx)) % (USART_RX_BUFFSIZE))
-
 /* USER CODE END 0 */
 
 UART_HandleTypeDef huart2;
@@ -50,7 +42,7 @@ void MX_USART2_UART_Init(void)
 
     /* USER CODE END USART2_Init 1 */
     huart2.Instance = USART2;
-    huart2.Init.BaudRate = 230400;
+    huart2.Init.BaudRate = 115200;
     huart2.Init.WordLength = UART_WORDLENGTH_8B;
     huart2.Init.StopBits = UART_STOPBITS_1;
     huart2.Init.Parity = UART_PARITY_NONE;
@@ -77,7 +69,7 @@ void MX_USART2_UART_Init(void)
         Error_Handler();
     }
     /* USER CODE BEGIN USART2_Init 2 */
-    HAL_UART_Receive_DMA(&huart2, RxBuff, USART_RX_BUFFSIZE);
+    HAL_UART_Receive_DMA(&huart2, uart2::RxBuff, uart2::USART_RX_BUFFSIZE);
     /* USER CODE END USART2_Init 2 */
 }
 
@@ -173,28 +165,32 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef *uartHandle)
 
 /* USER CODE BEGIN 1 */
 
-int available()
+namespace uart2
 {
-    return DMA_WRITE_PTR-rd_ptr;
-}
+    uint8_t RxBuff[USART_RX_BUFFSIZE];
+    uint32_t rd_ptr;
 
-uint8_t read()
-{
-    if (available())
+    int available()
     {
+        return ((USART_RX_BUFFSIZE - __HAL_DMA_GET_COUNTER(huart2.hdmarx)) % (USART_RX_BUFFSIZE)) - rd_ptr;
+    }
+
+    uint8_t read()
+    {
+        if (available() == 0)
+            return 0;
         uint8_t data = RxBuff[rd_ptr];
         rd_ptr = (rd_ptr + 1) % USART_RX_BUFFSIZE;
         return data;
     }
-    return -1; // No data available
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
     if (huart->Instance == USART2)
     {
-        SEGGER_RTT_printf(0, "Received data: %02x\n", RxBuff[0]);
-        HAL_UART_Receive_DMA(&huart2, RxBuff, USART_RX_BUFFSIZE);
+        HAL_UART_Receive_DMA(&huart2, uart2::RxBuff, uart2::USART_RX_BUFFSIZE);
     }
 }
+
 /* USER CODE END 1 */

@@ -33,7 +33,7 @@ namespace canbus
         Serial2.setRX(9);
         Serial2.setTX(8);
         Serial2.setFIFOSize(1024);
-        Serial2.begin(230400);
+        Serial2.begin(115200);
         ps.setStream(&Serial2);
         Serial2.flush();
         ps.setPacketHandler(&onPacketReceived);
