@@ -37,7 +37,6 @@ size_t cobs::decode(const uint8_t *input,const size_t size,size_t *start_idx,siz
     size_t enc_idx = *start_idx,i=0;
     size_t next_0x00 = 0;
     bool next_is_overhead=false;
-    uint8_t code = 0;
 
     if(input[enc_idx]==0x00){
         enc_idx=(enc_idx+1)%size;
@@ -52,7 +51,7 @@ size_t cobs::decode(const uint8_t *input,const size_t size,size_t *start_idx,siz
             if(input[enc_idx]==0x00){
                 *start_idx=(enc_idx+1)%size;
                 output[i]=next_0x00;
-                for(int j=1;j<i;j++){
+                for(size_t j=1;j<i;j++){
                     output[j-1]=output[j];
                 }
                 return i-1;
