@@ -48,6 +48,7 @@ namespace uart2
     constexpr size_t USART_RX_BUFFSIZE = 2048;
     int available();
     uint8_t read();
+    void refresh();
 }
 
 /* USER CODE END Prototypes */

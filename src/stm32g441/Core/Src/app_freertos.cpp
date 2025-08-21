@@ -107,7 +107,7 @@ void MX_FREERTOS_Init(void)
 
     /* USER CODE BEGIN RTOS_THREADS */
     xTaskCreate(StartDefaultTask, "defaultTask", 128, NULL, osPriorityNormal, &defaultTaskHandle);
-    xTaskCreate(StartUartPollingTask, "uartPollingTask", 128, NULL, osPriorityNormal, &uartPollingTaskHandle);
+    xTaskCreate(StartUartPollingTask, "uartPollingTask", 256, NULL, osPriorityNormal, &uartPollingTaskHandle);
     /* USER CODE END RTOS_THREADS */
 
     /* USER CODE BEGIN RTOS_EVENTS */
@@ -165,26 +165,21 @@ void StartUartPollingTask(void *argument)
     /* Infinite loop */
     SEGGER_RTT_printf(0, "UART Polling Task started\n");
     constexpr size_t buf_size = 256;
+    size_t start_idx = 0, end_idx = 0;
     uint8_t rx_buf[buf_size], decoded[buf_size];
     union
     {
         DeviceData::CANPacket data;
         uint8_t raw[sizeof(data)];
     } u;
-    size_t start_idx = 0, end_idx = 0,len=0;
+    uint32_t t_threshold = HAL_GetTick()+uart2::USART_RX_BUFFSIZE;
     for (;;)
     {
         while (uart2::available())
         {
             rx_buf[end_idx] = uart2::read();
-            len++;
-            if(len>=buf_size)
-            {
-                SEGGER_RTT_printf(0,"Buffer overflow detected\n");
-                start_idx=0;
-                end_idx=0;
-            }
             end_idx = (end_idx + 1) % buf_size;
+            t_threshold = HAL_GetTick()+uart2::USART_RX_BUFFSIZE;
             size_t size = cobs::decode(rx_buf, buf_size, &start_idx, end_idx, decoded);
             if (size > 0)
             {
@@ -251,16 +246,29 @@ void StartUartPollingTask(void *argument)
                         while (HAL_FDCAN_GetTxFifoFreeLevel(&hfdcan1) != 3)
                             ;
                     }
+
+                    SEGGER_RTT_printf(0, "cobs : [ ");
+                    for (size_t i = 0; i < size; i++)
+                    {
+                        SEGGER_RTT_printf(0, "0x%02x ", decoded[i]);
+                    }
+                    SEGGER_RTT_printf(0, "]\n");
                 }
-                len=0;
-                SEGGER_RTT_printf(0, "cobs : [ ");
-                for (size_t i = 0; i < size; i++)
-                {
-                    SEGGER_RTT_printf(0, "0x%02x ", decoded[i]);
-                }
-                SEGGER_RTT_printf(0, "]\n");
             }
         }
+
+        if (t_threshold < HAL_GetTick())
+        {
+            uart2::refresh();
+            t_threshold = HAL_GetTick()+uart2::USART_RX_BUFFSIZE;
+            for (size_t i = 0; i < sizeof(rx_buf); i++)
+            {
+                rx_buf[i] = 0;
+            }
+            start_idx = 0;
+            end_idx = 0;
+        }
+
         vTaskDelay(10); // Poll every 1000 ms
     }
     /* USER CODE END StartUartPollingTask */
@@ -281,35 +289,38 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
             Error_Handler();
         }
         canPacket.id = fdcan1RxHeader.Identifier;
-        if(fdcan1RxHeader.DataLength<=8){
+        if (fdcan1RxHeader.DataLength <= 8)
+        {
             canPacket.size = fdcan1RxHeader.DataLength;
-        }else{
-            switch(fdcan1RxHeader.DataLength)
+        }
+        else
+        {
+            switch (fdcan1RxHeader.DataLength)
             {
-                case FDCAN_DLC_BYTES_12:
-                    canPacket.size = 12;
-                    break;
-                case FDCAN_DLC_BYTES_16:
-                    canPacket.size = 16;
-                    break;
-                case FDCAN_DLC_BYTES_20:
-                    canPacket.size = 20;
-                    break;
-                case FDCAN_DLC_BYTES_24:
-                    canPacket.size = 24;
-                    break;
-                case FDCAN_DLC_BYTES_32:
-                    canPacket.size = 32;
-                    break;
-                case FDCAN_DLC_BYTES_48:
-                    canPacket.size = 48;
-                    break;
-                case FDCAN_DLC_BYTES_64:
-                    canPacket.size = 64;
-                    break;
-                default:
-                    canPacket.size = 0;
-                    break;
+            case FDCAN_DLC_BYTES_12:
+                canPacket.size = 12;
+                break;
+            case FDCAN_DLC_BYTES_16:
+                canPacket.size = 16;
+                break;
+            case FDCAN_DLC_BYTES_20:
+                canPacket.size = 20;
+                break;
+            case FDCAN_DLC_BYTES_24:
+                canPacket.size = 24;
+                break;
+            case FDCAN_DLC_BYTES_32:
+                canPacket.size = 32;
+                break;
+            case FDCAN_DLC_BYTES_48:
+                canPacket.size = 48;
+                break;
+            case FDCAN_DLC_BYTES_64:
+                canPacket.size = 64;
+                break;
+            default:
+                canPacket.size = 0;
+                break;
             }
         }
         for (size_t i = 0; i < canPacket.size; i++)

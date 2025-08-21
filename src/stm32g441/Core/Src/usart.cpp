@@ -191,11 +191,15 @@ namespace uart2
     uint8_t RxBuff[USART_RX_BUFFSIZE];
     uint32_t rd_ptr;
 
+    /// @brief Get the number of bytes available to read in the RX buffer
+    /// @return Number of bytes available to read
     int available()
     {
-        return ((USART_RX_BUFFSIZE - __HAL_DMA_GET_COUNTER(huart2.hdmarx)) % (USART_RX_BUFFSIZE)) - rd_ptr;
+        return ((USART_RX_BUFFSIZE - __HAL_DMA_GET_COUNTER(huart2.hdmarx)) % (USART_RX_BUFFSIZE) - rd_ptr) % USART_RX_BUFFSIZE;
     }
 
+    /// @brief Read a byte from the RX buffer
+    /// @return The byte read from the RX buffer, or 0 if no data is available
     uint8_t read()
     {
         if (available() == 0)
@@ -203,6 +207,13 @@ namespace uart2
         uint8_t data = RxBuff[rd_ptr];
         rd_ptr = (rd_ptr + 1) % USART_RX_BUFFSIZE;
         return data;
+    }
+
+    /// @brief Refresh the RX buffer by resetting the read pointer and reinitializing the DMA
+    void refresh()
+    {
+        rd_ptr = 0;
+        HAL_UART_Receive_DMA(&huart2, RxBuff, USART_RX_BUFFSIZE);
     }
 }
 
