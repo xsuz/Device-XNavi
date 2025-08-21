@@ -28,7 +28,6 @@ namespace imu
                   SPI1_SCK = 14,
                   SPI1_TX = 15;
 
-    constexpr int delta_t = 4;
     ASM330LHHSensor asm330lhh(&SPI1, SPI1_CS, 1000000); // SPI1, CS pin 13, SPI speed 1MHz
     float quat[4] = {1.0f, 0.0f, 0.0f, 0.0f};
     constexpr float deg2rad = M_PI / 180.0f;
@@ -46,30 +45,24 @@ namespace imu
         DeviceData::CANPacket can_pkt;
         uint8_t count = 0;
 
-        SEGGER_RTT_WriteString(0, "imu : IMU task started.\n");
+        SEGGER_RTT_printf(0, "[%sINFO%s imu] : IMU task started.\n",RTT_CTRL_TEXT_GREEN,RTT_CTRL_RESET);
 
-        while (!sys_clock::is_valid())
-        {
-            // SEGGER_RTT_WriteString(0, "imu : Waiting for system clock to be valid...\n");
-            vTaskDelay(1000 / portTICK_PERIOD_MS);
-        }
-
-        SEGGER_RTT_printf(0, "imu : Initializing SPI1 with RX: %d, CS: %d, SCK: %d, TX: %d\n", SPI1_RX, SPI1_CS, SPI1_SCK, SPI1_TX);
+        SEGGER_RTT_printf(0, "[%sINFO%s imu] : Initializing SPI1 with RX: %d, CS: %d, SCK: %d, TX: %d\n",RTT_CTRL_TEXT_GREEN,RTT_CTRL_RESET, SPI1_RX, SPI1_CS, SPI1_SCK, SPI1_TX);
         // IMU setup
         SPI1.setRX(SPI1_RX);
         SPI1.setCS(SPI1_CS);
         SPI1.setSCK(SPI1_SCK);
         SPI1.setTX(SPI1_TX);
         SPI1.begin();
-        SEGGER_RTT_WriteString(0, "imu : SPI1 initialized.\n");
+        SEGGER_RTT_printf(0, "[%sINFO%s imu] : SPI1 initialized.\n",RTT_CTRL_TEXT_GREEN,RTT_CTRL_RESET);
 
         if (asm330lhh.begin() == ASM330LHH_OK)
         {
-            SEGGER_RTT_WriteString(0, "imu : ASM330LHH initialized successfully\n");
+            SEGGER_RTT_printf(0, "[%sINFO%s imu] : ASM330LHH initialized successfully\n",RTT_CTRL_TEXT_GREEN,RTT_CTRL_RESET);
         }
         else
         {
-            SEGGER_RTT_WriteString(0, "imu : Failed to initialize ASM330LHH\n");
+            SEGGER_RTT_printf(0, "[%sERROR%s imu] : Failed to initialize ASM330LHH\n",RTT_CTRL_TEXT_RED,RTT_CTRL_RESET);
             while (1)
                 ; // Halt if initialization fails
         }
@@ -79,23 +72,23 @@ namespace imu
         asm330lhh.Set_X_FS(ASM330LHH_2g);
         asm330lhh.Set_G_FS(ASM330LHH_125dps);
 
-        SEGGER_RTT_WriteString(0, "imu : ASM330LHH enabled for accelerometer and gyroscope.\n");
+        SEGGER_RTT_printf(0, "[%sINFO%s imu] : ASM330LHH enabled for accelerometer and gyroscope.\n",RTT_CTRL_TEXT_GREEN,RTT_CTRL_RESET);
 
         // Initialize the queue for IMU data
         imuQueue = xQueueCreate(10, sizeof(DeviceData::IMUData));
         utcQueue = xQueueCreate(10, sizeof(int64_t));
         if (imuQueue == NULL)
         {
-            SEGGER_RTT_WriteString(0, "imu : Failed to create IMU queue.\n");
+            SEGGER_RTT_printf(0, "[%sERROR%s imu] : Failed to create IMU queue.\n",RTT_CTRL_TEXT_RED,RTT_CTRL_RESET);
             while (1)
                 ; // Halt if queue creation fails
         }
-        SEGGER_RTT_WriteString(0, "imu : IMU queue created successfully.\n");
+        SEGGER_RTT_printf(0, "[%sINFO%s imu] : IMU queue created successfully.\n",RTT_CTRL_TEXT_GREEN,RTT_CTRL_RESET);
         // Create a timer for periodic IMU data collection
-        SEGGER_RTT_WriteString(0, "imu : Creating IMU timer...\n");
+        SEGGER_RTT_printf(0, "[%sINFO%s imu] : Creating IMU timer...\n",RTT_CTRL_TEXT_GREEN,RTT_CTRL_RESET);
         auto timerIMU = xTimerCreate("imu", delta_t, pdTRUE, 0, imu::timer_callback);
         xTimerStart(timerIMU, 0);
-        SEGGER_RTT_WriteString(0, "imu : IMU timer started.\n");
+        SEGGER_RTT_printf(0, "[%sINFO%s imu] : IMU timer started.\n",RTT_CTRL_TEXT_GREEN,RTT_CTRL_RESET);
         while (1)
         {
             while (uxQueueMessagesWaiting(imuQueue) > 0)

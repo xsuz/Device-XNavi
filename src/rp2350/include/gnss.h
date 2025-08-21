@@ -4,8 +4,6 @@
 #include <queue.h>
 
 namespace gnss{
-
-    extern QueueHandle_t gnssQueue;
     
     /// @brief PPS信号の割り込みハンドラ
     /// @param gpio

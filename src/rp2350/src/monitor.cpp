@@ -22,7 +22,7 @@ namespace monitor
     /// @brief ログの状態を表す構造体
     void task(void *pvParam)
     {
-        SEGGER_RTT_WriteString(0, "monitor : Monitor task started.\n");
+        SEGGER_RTT_printf(0, "[%sINFO%s monitor] : Monitor task started.\n",RTT_CTRL_TEXT_GREEN,RTT_CTRL_RESET);
         analogReadResolution(12);
         pinMode(24,INPUT);
 
@@ -32,13 +32,12 @@ namespace monitor
             u.status.timestamp = millis();
             u.status.voltage = (uint16_t)(voltage);
             u.status.percentage = (uint8_t)(123.0f*(1.0f-1.0f/pow(1.0f+pow(voltage/3700.0f,80.0f),0.165f))); // 電圧をパーセンテージに変換
-            u.status.status = 0;
-            if(sys_clock::is_valid()){
-                u.status.status = 1;
-            }
-            u.status.status|=digitalRead(24)<<1;
-            SEGGER_RTT_printf(0, "monitor : timestamp=%d[msec], voltage=%d[mV], percentage=%d[%%], status=%02x\n",
-                              u.status.timestamp, u.status.voltage, u.status.percentage, u.status.status);
+            u.status.status.bits.sys_clock_valid = sys_clock::is_valid();
+            u.status.status.bits.usb_connected = digitalRead(24);
+            u.status.status.bits.sd_logger_valid = sd_logger::is_valid();
+            SEGGER_RTT_printf(0, "[%sINFO%s monitor] : timestamp=%d[msec], voltage=%d[mV], percentage=%d[%%], status=%02x\n",
+                            RTT_CTRL_TEXT_GREEN,RTT_CTRL_RESET,
+                            u.status.timestamp, u.status.voltage, u.status.percentage, u.status.status.all);
             sd_logger::write_pkt(DeviceData::SensorType::XNavi ,u.raw, sizeof(u.raw), sys_clock::get_timestamp());
 
             DeviceData::CANPacket pkt;

@@ -17,7 +17,7 @@ namespace canbus
 
     void onPacketReceived(const uint8_t *buffer, size_t size)
     {
-        SEGGER_RTT_printf(0, "canbus : size %d [bytes]  packet [ ", size);
+        SEGGER_RTT_printf(0, "[%sINFO%s canbus] : size %d [bytes]  packet [ ", RTT_CTRL_TEXT_GREEN,RTT_CTRL_RESET, size);
         for(int i=0;i<size;i++){
             SEGGER_RTT_printf(0,"0x%02x ",buffer[i]);
         }
@@ -27,9 +27,9 @@ namespace canbus
 
     void task(void *pvParam)
     {
-        SEGGER_RTT_WriteString(0, "canbus : task started.\n");
+        SEGGER_RTT_printf(0, "[%sINFO%s canbus] : task started.\n",RTT_CTRL_TEXT_GREEN,RTT_CTRL_RESET);
         // TWELITEのUARTを初期化
-        SEGGER_RTT_printf(0, "canbus : Initializing Serial2 with RX: %d, TX: %d\n", 9, 8);
+        SEGGER_RTT_printf(0, "[%sINFO%s canbus] : Initializing Serial2 with RX: 9, TX: 8\n", RTT_CTRL_TEXT_GREEN, RTT_CTRL_RESET);
         Serial2.setRX(9);
         Serial2.setTX(8);
         Serial2.setFIFOSize(1024);
@@ -38,7 +38,7 @@ namespace canbus
         Serial2.flush();
         ps.setPacketHandler(&onPacketReceived);
         canQueue = xQueueCreate(20, sizeof(DeviceData::CANPacket));
-        SEGGER_RTT_WriteString(0, "canbus : Serial2 initialized.\n");
+        SEGGER_RTT_printf(0, "[%sINFO%s canbus] : Serial2 initialized.\n",RTT_CTRL_TEXT_GREEN,RTT_CTRL_RESET);
 
         // TWELITEからのデータ受信ループ
         while (true)

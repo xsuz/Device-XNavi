@@ -101,6 +101,16 @@ namespace DeviceData
         /// @brief バッテリー残量 : %
         uint8_t percentage;
         /// @brief ログの状態
-        uint8_t status;
+        union
+        {
+            uint8_t all;
+            struct
+            {
+                uint8_t sys_clock_valid : 1; // システムクロックが有効かどうか
+                uint8_t usb_connected : 1; // USBが接続されているかどうか
+                uint8_t sd_logger_valid :1; // loggingされているかどうか
+                uint8_t reserved :5;
+            } bits;
+        } status;
     };
 }

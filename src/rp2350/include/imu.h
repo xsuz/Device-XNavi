@@ -4,7 +4,7 @@
 #include <queue.h>
 
 namespace imu{
-    extern QueueHandle_t imuQueue;
+    constexpr int delta_t = 4;
 
     /// @brief IMUによるKalman Filterの更新タスク
     /// @param pvParam 

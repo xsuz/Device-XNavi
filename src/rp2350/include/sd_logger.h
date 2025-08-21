@@ -20,4 +20,8 @@ namespace sd_logger
     /// @brief SDカードにログを保存するタスク
     /// @param pvParam 
     void task(void *pvParam);
+
+    /// @brief SDカードのステータスを取得する
+    /// @return 0 = 無効, 1 = 有効
+    uint8_t is_valid();
 }

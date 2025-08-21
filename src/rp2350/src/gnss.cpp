@@ -56,8 +56,9 @@ namespace gnss
         data.pDOP = pvt.pDOP;
         data.flags.all = pvt.flags.all;
 
-        SEGGER_RTT_printf(0, "gnss : latitude: %d, longitude: %d, altitude: %d, velN: %d, velE: %d, velD: %d, hAcc: %u, vAcc: %u, fixType: %u, pDOP: %u\n",
-                          pvt.lat, pvt.lon, pvt.height, pvt.velN, pvt.velE, pvt.velD, pvt.hAcc, pvt.vAcc, pvt.fixType, pvt.pDOP);
+        SEGGER_RTT_printf(0, "[%sINFO%s gnss] : latitude: %d, longitude: %d, altitude: %d, velN: %d, velE: %d, velD: %d, hAcc: %u, vAcc: %u, fixType: %u, pDOP: %u\n",
+                        RTT_CTRL_TEXT_GREEN, RTT_CTRL_RESET,
+                        pvt.lat, pvt.lon, pvt.height, pvt.velN, pvt.velE, pvt.velD, pvt.hAcc, pvt.vAcc, pvt.fixType, pvt.pDOP);
 
         xQueueSend(gnssQueue, &data, 0);
         xQueueSend(utcQueue, &utc, 0);
@@ -69,7 +70,7 @@ namespace gnss
     {
         Serial1.begin(115200);
         Serial1.flush();
-        SEGGER_RTT_WriteString(0, "gnss : reset UBX parser.\n");
+        SEGGER_RTT_printf(0, "[%sWARN%s gnss] : reset UBX parser.\n", RTT_CTRL_TEXT_YELLOW, RTT_CTRL_RESET);
     }
 
     void task(void *pvParam)
@@ -82,7 +83,7 @@ namespace gnss
         int64_t utc;
         DeviceData::CANPacket can_pkt;
 
-        SEGGER_RTT_WriteString(0, "gnss : GNSS task started.\n");
+        SEGGER_RTT_printf(0, "[%sINFO%s gnss] : GNSS task started.\n",RTT_CTRL_TEXT_GREEN,RTT_CTRL_RESET);
         pinMode(LED, OUTPUT);
         digitalWrite(LED, LOW);
         // UART0を初期化
@@ -110,11 +111,11 @@ namespace gnss
 
         if (gnssQueue == NULL)
         {
-            SEGGER_RTT_WriteString(0, "gnss : Failed to create GNSS queue.\n");
+            SEGGER_RTT_printf(0, "[%sERROR%s gnss] : Failed to create GNSS queue.\n", RTT_CTRL_TEXT_RED, RTT_CTRL_RESET);
             while (1)
                 ; // Halt if queue creation fails
         }
-        SEGGER_RTT_WriteString(0, "gnss : GNSS queue created successfully.\n");
+        SEGGER_RTT_printf(0, "[%sINFO%s gnss] : GNSS queue created successfully.\n", RTT_CTRL_TEXT_GREEN, RTT_CTRL_RESET);
 
         ubx_parser.callbackPVT = pvt_callback;
         ubx_parser.callbackReset = callback_reset;

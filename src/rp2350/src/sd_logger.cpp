@@ -51,17 +51,17 @@ namespace sd_logger
 
         while ((res = f_mount(&fs, "/", 0)) != FR_OK)
         {
-            SEGGER_RTT_printf(0, "Failed to mount SD card, retrying...\n");
+            SEGGER_RTT_printf(0, "[%sERROR%s sd_logger] : Failed to mount SD card, retrying...\n",RTT_CTRL_TEXT_RED,RTT_CTRL_RESET);
             digitalWrite(LED, HIGH);
             vTaskDelay(50);
             digitalWrite(LED, LOW);
             vTaskDelay(50);
         }
-        SEGGER_RTT_printf(0, "SD card mounted successfully.\n");
+        SEGGER_RTT_printf(0, "[%sINFO%s sd_logger] : SD card mounted successfully.\n",RTT_CTRL_TEXT_GREEN,RTT_CTRL_RESET);
 
         while((res = f_open(&fil,"README.md",FA_WRITE | FA_CREATE_ALWAYS))!=FR_OK)
         {
-            SEGGER_RTT_printf(0, "Failed to open file README.md, retrying...\n");
+            SEGGER_RTT_printf(0, "[%sERROR%s sd_logger] : Failed to open file README.md, retrying...\n",RTT_CTRL_TEXT_RED,RTT_CTRL_RESET);
             digitalWrite(LED, HIGH);
             vTaskDelay(500);
             digitalWrite(LED, LOW);
@@ -79,14 +79,14 @@ namespace sd_logger
 
         while ((res = f_open(&fil, filename, FA_WRITE | FA_CREATE_ALWAYS)) != FR_OK)
         {
-            SEGGER_RTT_printf(0, "Failed to open file %s, retrying...\n", filename);
+            SEGGER_RTT_printf(0, "[%sERROR%s sd_logger] : Failed to open file %s, retrying...\n",RTT_CTRL_TEXT_RED,RTT_CTRL_RESET, filename);
             digitalWrite(LED, HIGH);
             vTaskDelay(100);
             digitalWrite(LED, LOW);
             vTaskDelay(100);
         }
         state = 1; // Set state to indicate SD logger is active
-        SEGGER_RTT_printf(0, "File %s opened successfully.\n", filename);
+        SEGGER_RTT_printf(0, "[%sINFO%s sd_logger] : File %s opened successfully.\n",RTT_CTRL_TEXT_GREEN,RTT_CTRL_RESET, filename);
         f_sync(&fil);
         while (1)
         {
@@ -109,6 +109,10 @@ namespace sd_logger
             }
             vTaskDelay(10);
         }
+    }
+
+    uint8_t is_valid(){
+        return state && sys_clock::is_valid() && (!BOOTSEL);
     }
 
     void inline get_filename()
@@ -227,7 +231,7 @@ namespace sd_logger
             }
             if (sd_logger::num_to_write >= sd_logger::buf_size_row)
             {
-                SEGGER_RTT_printf(0, "error : queue overflow!\n");
+                SEGGER_RTT_printf(0, "[%sERROR%s sd_logger] : queue overflow!\n",RTT_CTRL_TEXT_RED,RTT_CTRL_RESET);
                 while (1)
                     ;
             }

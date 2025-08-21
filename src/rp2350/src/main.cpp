@@ -22,7 +22,7 @@ void setup()
 {
     // put your setup code here, to run once:
     SEGGER_RTT_Init();
-    SEGGER_RTT_printf(0,"\nxnavi: power on");
+    SEGGER_RTT_printf(0,"\n[%sINFO%s xnavi] : power on\n",RTT_CTRL_TEXT_GREEN,RTT_CTRL_RESET);
 
     xTaskCreate(gnss::task,"gps",512,NULL,4,&Task1);
     xTaskCreate(imu::task,"imu",256,NULL,3,&Task2);
