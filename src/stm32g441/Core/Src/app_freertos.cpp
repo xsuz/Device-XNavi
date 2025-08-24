@@ -147,11 +147,12 @@ void StartDefaultTask(void *argument)
                 }
                 SEGGER_RTT_printf(0, "]\n");
                 size_t size = cobs::encode(u.raw, u.data.size + 8, encoded_data);
-                HAL_UART_Transmit(&huart2, encoded_data, size, HAL_MAX_DELAY);
+                HAL_UART_Transmit_DMA(&huart2, encoded_data, size);
+                while(huart2.gState!=HAL_UART_STATE_READY){}
             }
             HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
         }
-        vTaskDelay(pdMS_TO_TICKS(10)); // Delay for 10 ms
+        vTaskDelay(pdMS_TO_TICKS(5)); // Delay for 5 ms
     }
     /* USER CODE END StartDefaultTask */
 }
@@ -269,7 +270,7 @@ void StartUartPollingTask(void *argument)
             end_idx = 0;
         }
 
-        vTaskDelay(10); // Poll every 1000 ms
+        vTaskDelay(1); // Poll every 1000 ms
     }
     /* USER CODE END StartUartPollingTask */
 }

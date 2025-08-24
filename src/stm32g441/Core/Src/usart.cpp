@@ -225,4 +225,11 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
     }
 }
 
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
+    if (huart->Instance == USART2)
+    {
+        huart2.gState = HAL_UART_STATE_READY;
+    }
+}
+
 /* USER CODE END 1 */
