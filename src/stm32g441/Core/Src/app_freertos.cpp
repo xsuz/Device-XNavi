@@ -62,11 +62,11 @@ TaskHandle_t uartPollingTaskHandle;
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
 
-void StartUartPollingTask(void *argument);
+void cobs_decoding_task(void *argument);
 
 /* USER CODE END FunctionPrototypes */
 
-void StartDefaultTask(void *argument);
+void default_task(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -106,8 +106,8 @@ void MX_FREERTOS_Init(void)
     /* creation of defaultTask */
 
     /* USER CODE BEGIN RTOS_THREADS */
-    xTaskCreate(StartDefaultTask, "defaultTask", 128, NULL, osPriorityNormal, &defaultTaskHandle);
-    xTaskCreate(StartUartPollingTask, "uartPollingTask", 256, NULL, osPriorityNormal, &uartPollingTaskHandle);
+    xTaskCreate(default_task, "defaultTask", 128, NULL, osPriorityNormal, &defaultTaskHandle);
+    xTaskCreate(cobs_decoding_task, "uartPollingTask", 256, NULL, osPriorityNormal, &uartPollingTaskHandle);
     /* USER CODE END RTOS_THREADS */
 
     /* USER CODE BEGIN RTOS_EVENTS */
@@ -115,16 +115,17 @@ void MX_FREERTOS_Init(void)
     /* USER CODE END RTOS_EVENTS */
 }
 
-/* USER CODE BEGIN Header_StartDefaultTask */
+/* USER CODE BEGIN Header_default_task */
 /**
  * @brief  Function implementing the defaultTask thread.
  * @param  argument: Not used
  * @retval None
  */
-/* USER CODE END Header_StartDefaultTask */
-void StartDefaultTask(void *argument)
+/* USER CODE END Header_default_task */
+void default_task(void *argument)
 {
-    /* USER CODE BEGIN StartDefaultTask */
+    /* USER CODE BEGIN default_task */
+    UNUSED(argument);
     /* Infinite loop */
     for (;;)
     {
@@ -154,15 +155,16 @@ void StartDefaultTask(void *argument)
         }
         vTaskDelay(pdMS_TO_TICKS(5)); // Delay for 5 ms
     }
-    /* USER CODE END StartDefaultTask */
+    /* USER CODE END default_task */
 }
 
 /* Private application code --------------------------------------------------*/
 /* USER CODE BEGIN Application */
 
-void StartUartPollingTask(void *argument)
+void cobs_decoding_task(void *argument)
 {
-    /* USER CODE BEGIN StartUartPollingTask */
+    /* USER CODE BEGIN cobs_decoding_task */
+    UNUSED(argument);
     /* Infinite loop */
     SEGGER_RTT_printf(0, "UART Polling Task started\n");
     constexpr size_t buf_size = 256;
@@ -272,7 +274,7 @@ void StartUartPollingTask(void *argument)
 
         vTaskDelay(1); // Poll every 1000 ms
     }
-    /* USER CODE END StartUartPollingTask */
+    /* USER CODE END cobs_decoding_task */
 }
 
 void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
