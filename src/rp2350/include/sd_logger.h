@@ -2,14 +2,14 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <mavlink/mavlink_types.h>
 
 namespace sd_logger
 {
     /// @brief パケットをログとして保存する
-    /// @param buffer 
-    /// @param size 
-    /// @param utc
-    void write_pkt(uint32_t id, const uint8_t *payload, size_t size,int64_t utc);
+    /// @param msg mavlinkのメッセージ
+    /// @param utc timestamp
+    void write_pkt(const mavlink_message_t *msg, int64_t utc);
 
     /// @brief バイト列をログとして保存する
     /// @param buffer 
@@ -24,4 +24,6 @@ namespace sd_logger
     /// @brief SDカードのステータスを取得する
     /// @return 0 = 無効, 1 = 有効
     uint8_t is_valid();
+
+    size_t available_ring_buffer_size();
 }

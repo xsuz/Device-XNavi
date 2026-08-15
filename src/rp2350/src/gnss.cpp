@@ -4,8 +4,6 @@
 #include <queue.h>
 
 #include "gnss.h"
-#include "DeviceData.h"
-#include "byte_utils.h"
 #include "sd_logger.h"
 #include "clock.h"
 #include "canbus.h"
@@ -14,6 +12,7 @@
 
 #include <ubx.h>
 #include <SEGGER_RTT.h>
+#include <mavlink/swingby/mavlink.h>
 
 namespace gnss
 {
@@ -36,31 +35,17 @@ namespace gnss
     void pvt_callback(ubx::NAV_PVT pvt)
     {
         digitalWrite(LED, HIGH);
-        DeviceData::GPSData data;
         if (pvt.valid.bits.validDate && pvt.valid.bits.validTime && tick_last_pps > 0)
         {
             sys_clock::set_timestamp_offset(tick_last_pps, pvt.year, pvt.month, pvt.day, pvt.hour, pvt.min, pvt.sec);
         }
         int64_t utc = sys_clock::get_timestamp();
 
-        data.latitude = pvt.lat;
-        data.longitude = pvt.lon;
-        data.altitude = pvt.height;
-        data.velN = pvt.velN;
-        data.velE = pvt.velE;
-        data.velD = pvt.velD;
-        data.timestamp = millis();
-        data.hAcc = pvt.hAcc;
-        data.vAcc = pvt.vAcc;
-        data.fixType = pvt.fixType;
-        data.pDOP = pvt.pDOP;
-        data.flags.all = pvt.flags.all;
-
         SEGGER_RTT_printf(0, "[%sINFO%s gnss] : latitude: %d, longitude: %d, altitude: %d, velN: %d, velE: %d, velD: %d, hAcc: %u, vAcc: %u, fixType: %u, pDOP: %u\n",
                         RTT_CTRL_TEXT_GREEN, RTT_CTRL_RESET,
                         pvt.lat, pvt.lon, pvt.height, pvt.velN, pvt.velE, pvt.velD, pvt.hAcc, pvt.vAcc, pvt.fixType, pvt.pDOP);
 
-        xQueueSend(gnssQueue, &data, 0);
+        xQueueSend(gnssQueue, &pvt, 0);
         xQueueSend(utcQueue, &utc, 0);
 
         digitalWrite(LED, LOW);
@@ -75,13 +60,10 @@ namespace gnss
 
     void task(void *pvParam)
     {
-        union
-        {
-            DeviceData::GPSData data;
-            uint8_t bytes[sizeof(data)];
-        } spkt;
         int64_t utc;
-        DeviceData::CANPacket can_pkt;
+        ubx::NAV_PVT pvt;
+        mavlink_message_t msg;
+        mavlink_gps_raw_int_t gps_raw;
 
         SEGGER_RTT_printf(0, "[%sINFO%s gnss] : GNSS task started.\n",RTT_CTRL_TEXT_GREEN,RTT_CTRL_RESET);
         pinMode(LED, OUTPUT);
@@ -90,23 +72,27 @@ namespace gnss
         Serial1.setFIFOSize(2048);
         Serial1.begin(9600);
         delay(1000); // GPSレシーバの起動を待機
-        uint8_t cmd0[] = {181, 98, 6, 8, 6, 0, 100, 0, 1, 0, 1, 0, 122, 18};
-        Serial1.write(cmd0, sizeof(cmd0)); // RATEを100Hzに設定
+        const uint8_t UBX_HEADER1=0xb5,UBX_HEADER2=0x62,UBX_CFG=0x06;
+
+        // [0xB5 0x62] : UBX header, 0x06 : class=UBX-CFG, 0x08 : message ID=CFG-RATE, [0x06 0x00] : payload length, [0x64 0x00] : measRate=100ms, [0x01 0x00] : navRate=1, [0x01 0x00] : timeRef=1, [0x7A 0x12] : checksum
+        uint8_t cmd0[] = {UBX_HEADER1, UBX_HEADER2, 0x06, 0x08, 6, 0, 100, 0, 1, 0, 1, 0, 122, 18};
+        Serial1.write(cmd0, sizeof(cmd0)); // RATEを10Hzに設定
         delay(100);
         // NAV-PVT出力を有効化
-        uint8_t cmd1[] = {181, 98, 6, 1, 8, 0, 1, 7, 0, 1, 0, 0, 0, 0, 24, 225};
+        uint8_t cmd1[] = {UBX_HEADER1, UBX_HEADER2, 0x06, 1, 8, 0, 1, 7, 0, 1, 0, 0, 0, 0, 24, 225};
         Serial1.write(cmd1, sizeof(cmd1));
         delay(100);
         // UBX出力を有効化
-        uint8_t cmd2[] = {181, 98, 6, 0, 20, 0, 1, 0, 0, 0, 208, 8, 0, 0, 0, 194, 1, 0, 3, 0, 1, 0, 0, 0, 0, 0, 186, 82};
+        uint8_t cmd2[] = {UBX_HEADER1, UBX_HEADER2, 0x06, 0, 20, 0, 1, 0, 0, 0, 208, 8, 0, 0, 0, 194, 1, 0, 3, 0, 1, 0, 0, 0, 0, 0, 186, 82};
         Serial1.write(cmd2, sizeof(cmd2));
         delay(100);
+        // PPSの基準を
         Serial1.println("$PUBX,41,1,0007,0003,115200,0*18"); // baudrateを115200に設定
         delay(1000);
         Serial1.flush();       // 無効なデータを破棄
         Serial1.begin(115200); // baudrate 115200で再度UART0を初期化
 
-        gnssQueue = xQueueCreate(5, sizeof(DeviceData::GPSData));
+        gnssQueue = xQueueCreate(5, sizeof(ubx::NAV_PVT));
         utcQueue = xQueueCreate(5, sizeof(int64_t));
 
         if (gnssQueue == NULL)
@@ -131,32 +117,31 @@ namespace gnss
         {
             while (uxQueueMessagesWaiting(gnssQueue) > 0)
             {
-                xQueueReceive(gnssQueue, &spkt.data, 0);
+                xQueueReceive(gnssQueue, &pvt, 0);
                 xQueueReceive(utcQueue, &utc, 0);
 
-                // SEGGER_RTT_printf(0, "gnss : latitude: %d, longitude: %d, altitude: %d, velN: %d, velE: %d, velD: %d, hAcc: %u, vAcc: %u, fixType: %u, pDOP: %u\n",
-                //                   spkt.data.latitude, spkt.data.longitude, spkt.data.altitude,
-                //                   spkt.data.velN, spkt.data.velE, spkt.data.velD,
-                //                   spkt.data.hAcc, spkt.data.vAcc,
-                //                   spkt.data.fixType, spkt.data.pDOP);
+                gps_raw.time_usec = utc;
+                gps_raw.lat = pvt.lat;
+                gps_raw.lon = pvt.lon;
+                gps_raw.alt = pvt.hMSL;
+                gps_raw.eph = pvt.hAcc;
+                gps_raw.epv = pvt.vAcc;
+                gps_raw.vel = pvt.gSpeed*10;
+                gps_raw.cog = pvt.headMot;
+                gps_raw.fix_type = pvt.fixType;
+                gps_raw.satellites_visible = pvt.numSV;
+                gps_raw.alt_ellipsoid = pvt.height;
+                gps_raw.h_acc = pvt.hAcc;
+                gps_raw.v_acc = pvt.vAcc;
+                gps_raw.vel_acc = pvt.sAcc;
+                gps_raw.hdg_acc = pvt.headAcc;
+                gps_raw.yaw = 0;
 
-                // バイトオーダーを変換
-                u32::to_le(&spkt.data.latitude);
-                u32::to_le(&spkt.data.longitude);
-                u32::to_le(&spkt.data.altitude);
-                u32::to_le(&spkt.data.velN);
-                u32::to_le(&spkt.data.velE);
-                u32::to_le(&spkt.data.velD);
-                u32::to_le(&spkt.data.timestamp);
-                u32::to_le(&spkt.data.hAcc);
-                u32::to_le(&spkt.data.vAcc);
-                u16::to_le(&spkt.data.pDOP);
-                sd_logger::write_pkt(DeviceData::SensorType::GPS, spkt.bytes, sizeof(spkt.bytes), utc);
+                mavlink_msg_gps_raw_int_encode(1, 0, &msg, &gps_raw);
+                sd_logger::write_pkt(&msg, utc);
 
-                can_pkt.id = DeviceData::SensorType::GPS;
-                can_pkt.size = sizeof(spkt.bytes);
-                memcpy(can_pkt.payload, spkt.bytes, sizeof(spkt.bytes));
-                canbus::write_pkt(can_pkt);
+                canbus::write_pkt(msg);
+                
             }
             vTaskDelay(10); // 10ms待機
         }

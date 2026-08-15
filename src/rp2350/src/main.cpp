@@ -25,10 +25,10 @@ void setup()
     SEGGER_RTT_printf(0,"\n[%sINFO%s xnavi] : power on\n",RTT_CTRL_TEXT_GREEN,RTT_CTRL_RESET);
 
     xTaskCreate(gnss::task,"gps",512,NULL,4,&Task1);
-    xTaskCreate(imu::task,"imu",256,NULL,3,&Task2);
+    xTaskCreate(imu::task,"imu",512,NULL,3,&Task2);
     xTaskCreate(sd_logger::task,"sd",256,NULL,1,&Task3);
-    xTaskCreate(canbus::task,"twelite",256,NULL,2,&Task4);
-    xTaskCreate(monitor::task,"monitor",256,NULL,2,&Task5);
+    xTaskCreate(canbus::task,"canbus",512,NULL,2,&Task4);
+    xTaskCreate(monitor::task,"monitor",512,NULL,2,&Task5);
     // vTaskStartScheduler();
 }
 

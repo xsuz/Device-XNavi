@@ -22,7 +22,7 @@
 
 /* USER CODE BEGIN 0 */
 
-#include "SEGGER_RTT.h"
+#include <SEGGER_RTT.h>
 
 /* USER CODE END 0 */
 

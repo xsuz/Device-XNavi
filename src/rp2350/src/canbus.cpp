@@ -2,27 +2,22 @@
 #include <task.h>
 #include <queue.h>
 #include <Arduino.h>
-#include <PacketSerial.h>
 
 #include "canbus.h"
 #include "sd_logger.h"
 #include "clock.h"
 
 #include <SEGGER_RTT.h>
+#include <mavlink/swingby/mavlink.h>
 
 namespace canbus
 {
-    PacketSerial ps;
     QueueHandle_t canQueue;
 
-    void onPacketReceived(const uint8_t *buffer, size_t size)
+    void onPacketReceived(const mavlink_message_t& msg)
     {
-        SEGGER_RTT_printf(0, "[%sINFO%s canbus] : size %d [bytes]  packet [ ", RTT_CTRL_TEXT_GREEN,RTT_CTRL_RESET, size);
-        for(int i=0;i<size;i++){
-            SEGGER_RTT_printf(0,"0x%02x ",buffer[i]);
-        }
-        SEGGER_RTT_printf(0,"]\n");
-        sd_logger::write_bytes(buffer, size,sys_clock::get_timestamp());
+        SEGGER_RTT_printf(0, "[%sINFO%s canbus] : Message received.\n", RTT_CTRL_TEXT_GREEN, RTT_CTRL_RESET);
+        sd_logger::write_pkt(&msg, sys_clock::get_timestamp());
     }
 
     void task(void *pvParam)
@@ -34,31 +29,43 @@ namespace canbus
         Serial2.setTX(8);
         Serial2.setFIFOSize(1024);
         Serial2.begin(115200);
-        ps.setStream(&Serial2);
         Serial2.flush();
-        ps.setPacketHandler(&onPacketReceived);
-        canQueue = xQueueCreate(20, sizeof(DeviceData::CANPacket));
+        canQueue = xQueueCreate(20, sizeof(mavlink_message_t));
         SEGGER_RTT_printf(0, "[%sINFO%s canbus] : Serial2 initialized.\n",RTT_CTRL_TEXT_GREEN,RTT_CTRL_RESET);
 
         // TWELITEからのデータ受信ループ
         while (true)
         {
-            ps.update(); // 受信データの更新
+            mavlink_message_t msg;
+            mavlink_status_t status;
+            while (Serial2.available() > 0)
+            {
+                uint8_t c = Serial2.read();
+                if (mavlink_parse_char(MAVLINK_COMM_0, c, &msg, &status))
+                {
+                    onPacketReceived(msg);
+                }
+            }
             while (uxQueueMessagesWaiting(canQueue) > 0)
             {
-                union{
-                    DeviceData::CANPacket pkt;
-                    uint8_t raw[sizeof(DeviceData::CANPacket)];
-                } u;
-                if (xQueueReceive(canQueue, &u.raw, 0) == pdTRUE)
+                if (xQueueReceive(canQueue, &msg, 0) == pdTRUE)
                 {
-                    ps.send(u.raw, u.pkt.size+8); // パケットを送信
+                    uint8_t buffer[MAVLINK_MAX_PACKET_LEN];
+                    size_t len = mavlink_msg_to_send_buffer(buffer, &msg);
+                    for(size_t i = 0; i < len; i++)
+                    {
+                        Serial2.write(buffer[i]);
+                    }
+                }
+                else
+                {
+                    SEGGER_RTT_printf(0, "[%sERROR%s canbus] : Failed to receive message from queue.\n", RTT_CTRL_TEXT_RED, RTT_CTRL_RESET);
                 }
             }
             vTaskDelay(1); // CPU負荷を下げるために少し待機
         }
     }
-    void write_pkt(DeviceData::CANPacket pkt)
+    void write_pkt(const mavlink_message_t& pkt)
     {
         if (canQueue != NULL)
         {

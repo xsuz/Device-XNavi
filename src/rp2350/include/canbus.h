@@ -2,8 +2,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
-
-#include "DeviceData.h"
+#include <mavlink/mavlink_types.h>
 
 namespace canbus {
     /// @brief TWELITE受信タスク
@@ -11,5 +10,5 @@ namespace canbus {
     void task(void* pvParam);
     /// @brief CANパケットの送信
     /// @param pkt 
-    void write_pkt(DeviceData::CANPacket pkt);
+    void write_pkt(const mavlink_message_t& pkt);
 };
