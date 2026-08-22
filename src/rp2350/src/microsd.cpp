@@ -86,7 +86,18 @@ inline void uSDTask::write_pkt(const mavlink_message_t &msg, int64_t timestamp)
     }
     uint8_t buffer[MAVLINK_MAX_PACKET_LEN + 8];
 
-    memcpy(buffer, &timestamp, 8);
+    // Big-Endianでtimestampを保存する
+    
+    uint64_t uvalue=static_cast<uint64_t>(timestamp);
+    buffer[0]=static_cast<uint8_t>(uvalue>>(8*7)) & 0xFF;
+    buffer[1]=static_cast<uint8_t>(uvalue>>(8*6)) & 0xFF;
+    buffer[2]=static_cast<uint8_t>(uvalue>>(8*5)) & 0xFF;
+    buffer[3]=static_cast<uint8_t>(uvalue>>(8*4)) & 0xFF;
+    buffer[4]=static_cast<uint8_t>(uvalue>>(8*3)) & 0xFF;
+    buffer[5]=static_cast<uint8_t>(uvalue>>(8*2)) & 0xFF;
+    buffer[6]=static_cast<uint8_t>(uvalue>>(8*1)) & 0xFF;
+    buffer[7]=static_cast<uint8_t>(uvalue>>(8*0)) & 0xFF;
+
     size_t size = mavlink_msg_to_send_buffer(buffer + 8, &msg);
     write_record(buffer, size);
 }
