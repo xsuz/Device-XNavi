@@ -1,14 +1,28 @@
 #pragma once
 
-#include <stdint.h>
-#include <stddef.h>
-#include <mavlink/mavlink_types.h>
+#include "task.hpp"
+#include "consumer.hpp"
 
-namespace canbus {
-    /// @brief TWELITE受信タスク
-    /// @param pvParam 
-    void task(void* pvParam);
-    /// @brief CANパケットの送信
-    /// @param pkt 
-    void write_pkt(const mavlink_message_t& pkt);
+#include <Arduino.h>
+
+class CANBusTask : public Task
+{
+public:
+    CANBusTask(Consumer consumer)
+        : Task({
+              .name = "CANBus",
+              .stack_size = 512,
+              .priority = 1,
+          }),
+          _consumer{consumer}
+    {
+    }
+
+protected:
+    void run() override;
+
+private:
+    void onPacketReceived(const mavlink_message_t &msg);
+
+    Consumer _consumer;
 };
