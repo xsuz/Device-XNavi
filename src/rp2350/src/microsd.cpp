@@ -1,4 +1,4 @@
-#include "uSD.h"
+#include "microsd.h"
 #include "clock.h"
 
 #include <FreeRTOS.h>
@@ -24,19 +24,19 @@ void uSDTask::run()
     pinMode(LED, OUTPUT);
     digitalWrite(LED, LOW);
 
-    SEGGER_RTT_printf(0, "[%sINFO%s LoggingTask] : Initializing LoggingTask task.\n", RTT_CTRL_TEXT_GREEN, RTT_CTRL_RESET);
+    SEGGER_RTT_printf(0, "[%sINFO%s uSD] : Initializing uSD task.\n", RTT_CTRL_TEXT_GREEN, RTT_CTRL_RESET);
 
     while ((res = f_mount(&fs, "/", 0)) != FR_OK)
     {
         if (_consumer.receive(msg, timestamp, 10))
         {
-            SEGGER_RTT_printf(0, "[%sERROR%s LoggingTask] : Failed to mount SD card, retrying...\n", RTT_CTRL_TEXT_RED, RTT_CTRL_RESET);
+            SEGGER_RTT_printf(0, "[%sERROR%s uSD] : Failed to mount SD card, retrying...\n", RTT_CTRL_TEXT_RED, RTT_CTRL_RESET);
             digitalWrite(LED, HIGH);
             vTaskDelay(1);
             digitalWrite(LED, LOW);
         }
     }
-    SEGGER_RTT_printf(0, "[%sINFO%s LoggingTask] : SD card mounted successfully.\n", RTT_CTRL_TEXT_GREEN, RTT_CTRL_RESET);
+    SEGGER_RTT_printf(0, "[%sINFO%s uSD] : SD card mounted successfully.\n", RTT_CTRL_TEXT_GREEN, RTT_CTRL_RESET);
 
     while (!sys_clock::is_valid())
     {
@@ -44,7 +44,7 @@ void uSDTask::run()
         {
             digitalWrite(LED, HIGH);
             vTaskDelay(1);
-            // SEGGER_RTT_printf(0, "[%sINFO%s LoggingTask] : Waiting for clock's configuration...\n", RTT_CTRL_TEXT_GREEN, RTT_CTRL_RESET, filename);
+            // SEGGER_RTT_printf(0, "[%sINFO%s uSD] : Waiting for clock's configuration...\n", RTT_CTRL_TEXT_GREEN, RTT_CTRL_RESET, filename);
             digitalWrite(LED, LOW);
         }
     }
@@ -55,10 +55,10 @@ void uSDTask::run()
     {
         if (_consumer.receive(msg, timestamp, 100))
         {
-            SEGGER_RTT_printf(0, "[%sERROR%s LoggingTask] : Failed to open file %s, retrying...\n", RTT_CTRL_TEXT_RED, RTT_CTRL_RESET, filename);
+            SEGGER_RTT_printf(0, "[%sERROR%s uSD] : Failed to open file %s, retrying...\n", RTT_CTRL_TEXT_RED, RTT_CTRL_RESET, filename);
         }
     }
-    SEGGER_RTT_printf(0, "[%sINFO%s LoggingTask] : File %s opened successfully.\n", RTT_CTRL_TEXT_GREEN, RTT_CTRL_RESET, filename);
+    SEGGER_RTT_printf(0, "[%sINFO%s uSD] : File %s opened successfully.\n", RTT_CTRL_TEXT_GREEN, RTT_CTRL_RESET, filename);
     f_sync(&fil);
     while (1)
     {
@@ -105,7 +105,7 @@ void inline uSDTask::write_record(const uint8_t *buffer, size_t size)
 
     if (available_ring_buffer_size_unsafe() < size)
     {
-        SEGGER_RTT_printf(0, "[%sWARNING%s LoggingTask] : Ring buffer overflow. The record cannot be saved.\n", RTT_CTRL_TEXT_YELLOW, RTT_CTRL_RESET);
+        SEGGER_RTT_printf(0, "[%sWARNING%s uSD] : Ring buffer overflow. The record cannot be saved.\n", RTT_CTRL_TEXT_YELLOW, RTT_CTRL_RESET);
         return;
     }
 
@@ -151,7 +151,7 @@ void inline uSDTask::write_ring_buffer(uint8_t data)
         if (ready_blocks >= BLOCK_COUNT - 1)
         {
             // Buffer overflow, handle error
-            SEGGER_RTT_printf(0, "[%sERROR%s LoggingTask] : Ring buffer overflow.\n", RTT_CTRL_TEXT_RED, RTT_CTRL_RESET);
+            SEGGER_RTT_printf(0, "[%sERROR%s uSD] : Ring buffer overflow.\n", RTT_CTRL_TEXT_RED, RTT_CTRL_RESET);
             return;
         }
         write_index = (write_index + 1) % BLOCK_COUNT;

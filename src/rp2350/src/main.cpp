@@ -5,7 +5,7 @@
 
 #include <SEGGER_RTT.h>
 
-#include "uSD.h"
+#include "microsd.h"
 #include "gnss.h"
 #include "imu.h"
 #include "canbus.h"
@@ -31,7 +31,7 @@ void setup()
     monitor_task.subscribe(usd_consumer);
     gnss_task.subscribe(usd_consumer);
 
-    // imu_task.subscribe(canbus_consumer);
+    imu_task.subscribe(canbus_consumer);
     monitor_task.subscribe(canbus_consumer);
     gnss_task.subscribe(canbus_consumer);
 

@@ -26,7 +26,7 @@ void GNSSTask::run()
     mavlink_message_t msg;
     mavlink_gps_raw_int_t gps_raw;
 
-    SEGGER_RTT_printf(0, "[%sINFO%s gnss] : GNSS task started.\n", RTT_CTRL_TEXT_GREEN, RTT_CTRL_RESET);
+    SEGGER_RTT_printf(0, "[%sINFO%s GNSS] : GNSS task started.\n", RTT_CTRL_TEXT_GREEN, RTT_CTRL_RESET);
 
     setup_gnss();
 
@@ -118,7 +118,7 @@ void GNSSTask::callback_pvt(ubx::NAV_PVT pvt, void *context)
     gps_raw.hdg_acc = pvt.headAcc;
     gps_raw.yaw = 0;
 
-    SEGGER_RTT_printf(0, "[%sINFO%s gnss] : latitude: %d, longitude: %d, altitude: %d, velN: %d, velE: %d, velD: %d, hAcc: %u, vAcc: %u, fixType: %u, pDOP: %u\n",
+    SEGGER_RTT_printf(0, "[%sINFO%s GNSS] : latitude: %d, longitude: %d, altitude: %d, velN: %d, velE: %d, velD: %d, hAcc: %u, vAcc: %u, fixType: %u, pDOP: %u\n",
                       RTT_CTRL_TEXT_GREEN, RTT_CTRL_RESET,
                       pvt.lat, pvt.lon, pvt.height, pvt.velN, pvt.velE, pvt.velD, pvt.hAcc, pvt.vAcc, pvt.fixType, pvt.pDOP);
 
@@ -130,7 +130,7 @@ void GNSSTask::callback_reset(void *)
 {
     Serial1.begin(115200);
     Serial1.flush();
-    SEGGER_RTT_printf(0, "[%sWARN%s gnss] : reset UBX parser.\n", RTT_CTRL_TEXT_YELLOW, RTT_CTRL_RESET);
+    SEGGER_RTT_printf(0, "[%sWARN%s GNSS] : reset UBX parser.\n", RTT_CTRL_TEXT_YELLOW, RTT_CTRL_RESET);
 }
 
 void GNSSTask::callback_pps(uint gpio, uint32_t emask)

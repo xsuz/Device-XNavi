@@ -39,24 +39,24 @@ void IMUTask::run()
     mavlink_imu_t imu_msg;
     uint8_t count = 0;
 
-    SEGGER_RTT_printf(0, "[%sINFO%s imu] : IMU task started.\n", RTT_CTRL_TEXT_GREEN, RTT_CTRL_RESET);
+    SEGGER_RTT_printf(0, "[%sINFO%s IMU] : IMU task started.\n", RTT_CTRL_TEXT_GREEN, RTT_CTRL_RESET);
 
-    SEGGER_RTT_printf(0, "[%sINFO%s imu] : Initializing SPI1 with RX: %d, CS: %d, SCK: %d, TX: %d\n", RTT_CTRL_TEXT_GREEN, RTT_CTRL_RESET, SPI1_RX, SPI1_CS, SPI1_SCK, SPI1_TX);
+    SEGGER_RTT_printf(0, "[%sINFO%s IMU] : Initializing SPI1 with RX: %d, CS: %d, SCK: %d, TX: %d\n", RTT_CTRL_TEXT_GREEN, RTT_CTRL_RESET, SPI1_RX, SPI1_CS, SPI1_SCK, SPI1_TX);
     // IMU setup
     SPI1.setRX(SPI1_RX);
     SPI1.setCS(SPI1_CS);
     SPI1.setSCK(SPI1_SCK);
     SPI1.setTX(SPI1_TX);
     SPI1.begin();
-    SEGGER_RTT_printf(0, "[%sINFO%s imu] : SPI1 initialized.\n", RTT_CTRL_TEXT_GREEN, RTT_CTRL_RESET);
+    SEGGER_RTT_printf(0, "[%sINFO%s IMU] : SPI1 initialized.\n", RTT_CTRL_TEXT_GREEN, RTT_CTRL_RESET);
 
     if (asm330lhh.begin() == ASM330LHH_OK)
     {
-        SEGGER_RTT_printf(0, "[%sINFO%s imu] : ASM330LHH initialized successfully\n", RTT_CTRL_TEXT_GREEN, RTT_CTRL_RESET);
+        SEGGER_RTT_printf(0, "[%sINFO%s IMU] : ASM330LHH initialized successfully\n", RTT_CTRL_TEXT_GREEN, RTT_CTRL_RESET);
     }
     else
     {
-        SEGGER_RTT_printf(0, "[%sERROR%s imu] : Failed to initialize ASM330LHH\n", RTT_CTRL_TEXT_RED, RTT_CTRL_RESET);
+        SEGGER_RTT_printf(0, "[%sERROR%s IMU] : Failed to initialize ASM330LHH\n", RTT_CTRL_TEXT_RED, RTT_CTRL_RESET);
         while (1)
             ; // Halt if initialization fails
     }
@@ -66,7 +66,7 @@ void IMUTask::run()
     asm330lhh.Set_X_FS(ASM330LHH_2g);
     asm330lhh.Set_G_FS(ASM330LHH_125dps);
 
-    SEGGER_RTT_printf(0, "[%sINFO%s imu] : ASM330LHH enabled for accelerometer and gyroscope.\n", RTT_CTRL_TEXT_GREEN, RTT_CTRL_RESET);
+    SEGGER_RTT_printf(0, "[%sINFO%s IMU] : ASM330LHH enabled for accelerometer and gyroscope.\n", RTT_CTRL_TEXT_GREEN, RTT_CTRL_RESET);
 
     TickType_t last_wake_time = xTaskGetTickCount();
     while (1)
