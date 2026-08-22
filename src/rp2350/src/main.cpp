@@ -25,13 +25,13 @@ void setup()
 {
     // put your setup code here, to run once:
     SEGGER_RTT_Init();
-    SEGGER_RTT_printf(0, "\n[%sINFO%s xnavi] : power on\n", RTT_CTRL_TEXT_GREEN, RTT_CTRL_RESET);
+    SEGGER_RTT_printf(0, "\n[%sINFO%s root] : power on\n", RTT_CTRL_TEXT_GREEN, RTT_CTRL_RESET);
 
     imu_task.subscribe(usd_consumer);
     monitor_task.subscribe(usd_consumer);
     gnss_task.subscribe(usd_consumer);
 
-    imu_task.subscribe(canbus_consumer);
+    // imu_task.subscribe(canbus_consumer);
     monitor_task.subscribe(canbus_consumer);
     gnss_task.subscribe(canbus_consumer);
 

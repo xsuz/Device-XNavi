@@ -11,15 +11,15 @@
 
 void CANBusTask::run()
 {
-    SEGGER_RTT_printf(0, "[%sINFO%s CANBus] : task started.\n", RTT_CTRL_TEXT_GREEN, RTT_CTRL_RESET);
+    log_info("task started.\n");
     // TWELITEのUARTを初期化
-    SEGGER_RTT_printf(0, "[%sINFO%s CANBus] : Initializing Serial2 with RX: 9, TX: 8\n", RTT_CTRL_TEXT_GREEN, RTT_CTRL_RESET);
+    log_info("Initializing Serial2 with RX: 9, TX: 8\n");
     Serial2.setRX(9);
     Serial2.setTX(8);
     Serial2.setFIFOSize(1024);
     Serial2.begin(115200);
     Serial2.flush();
-    SEGGER_RTT_printf(0, "[%sINFO%s CANBus] : Serial2 initialized.\n", RTT_CTRL_TEXT_GREEN, RTT_CTRL_RESET);
+    log_info("Serial2 initialized.\n");
 
     // TWELITEからのデータ受信ループ
     while (true)
@@ -41,11 +41,10 @@ void CANBusTask::run()
             size_t len = mavlink_msg_to_send_buffer(buffer, &msg);
             Serial2.write(buffer, len);
         }
-        vTaskDelay(1); // CPU負荷を下げるために少し待機
     }
 }
 
 void CANBusTask::onPacketReceived(const mavlink_message_t &msg)
 {
-    SEGGER_RTT_printf(0, "[%sINFO%s CANBus] : Message received.\n", RTT_CTRL_TEXT_GREEN, RTT_CTRL_RESET);
+    log_info("Recieved message (msgid:%d, sysid:%d compid:%d)\n",msg.msgid,msg.sysid,msg.compid);
 }

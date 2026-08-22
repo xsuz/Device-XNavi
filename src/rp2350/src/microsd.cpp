@@ -24,19 +24,19 @@ void uSDTask::run()
     pinMode(LED, OUTPUT);
     digitalWrite(LED, LOW);
 
-    SEGGER_RTT_printf(0, "[%sINFO%s uSD] : Initializing uSD task.\n", RTT_CTRL_TEXT_GREEN, RTT_CTRL_RESET);
+    log_info("Initializing uSD task.\n");
 
     while ((res = f_mount(&fs, "/", 0)) != FR_OK)
     {
         if (_consumer.receive(msg, timestamp, 10))
         {
-            SEGGER_RTT_printf(0, "[%sERROR%s uSD] : Failed to mount SD card, retrying...\n", RTT_CTRL_TEXT_RED, RTT_CTRL_RESET);
+            log_error("Failed to mount SD card, retrying...\n");
             digitalWrite(LED, HIGH);
             vTaskDelay(1);
             digitalWrite(LED, LOW);
         }
     }
-    SEGGER_RTT_printf(0, "[%sINFO%s uSD] : SD card mounted successfully.\n", RTT_CTRL_TEXT_GREEN, RTT_CTRL_RESET);
+    log_info("SD card mounted successfully.\n");
 
     while (!sys_clock::is_valid())
     {
@@ -44,7 +44,7 @@ void uSDTask::run()
         {
             digitalWrite(LED, HIGH);
             vTaskDelay(1);
-            // SEGGER_RTT_printf(0, "[%sINFO%s uSD] : Waiting for clock's configuration...\n", RTT_CTRL_TEXT_GREEN, RTT_CTRL_RESET, filename);
+            // log_info("Waiting for clock's configuration...\n", filename);
             digitalWrite(LED, LOW);
         }
     }
@@ -55,10 +55,10 @@ void uSDTask::run()
     {
         if (_consumer.receive(msg, timestamp, 100))
         {
-            SEGGER_RTT_printf(0, "[%sERROR%s uSD] : Failed to open file %s, retrying...\n", RTT_CTRL_TEXT_RED, RTT_CTRL_RESET, filename);
+            log_error("Failed to open file %s, retrying...\n", filename);
         }
     }
-    SEGGER_RTT_printf(0, "[%sINFO%s uSD] : File %s opened successfully.\n", RTT_CTRL_TEXT_GREEN, RTT_CTRL_RESET, filename);
+    log_info("File %s opened successfully.\n", filename);
     f_sync(&fil);
     while (1)
     {
@@ -116,7 +116,7 @@ void inline uSDTask::write_record(const uint8_t *buffer, size_t size)
 
     if (available_ring_buffer_size_unsafe() < size)
     {
-        SEGGER_RTT_printf(0, "[%sWARNING%s uSD] : Ring buffer overflow. The record cannot be saved.\n", RTT_CTRL_TEXT_YELLOW, RTT_CTRL_RESET);
+        log_error("Ring buffer overflow. The record cannot be saved.\n");
         return;
     }
 
@@ -162,7 +162,7 @@ void inline uSDTask::write_ring_buffer(uint8_t data)
         if (ready_blocks >= BLOCK_COUNT - 1)
         {
             // Buffer overflow, handle error
-            SEGGER_RTT_printf(0, "[%sERROR%s uSD] : Ring buffer overflow.\n", RTT_CTRL_TEXT_RED, RTT_CTRL_RESET);
+            log_error("Ring buffer overflow.\n");
             return;
         }
         write_index = (write_index + 1) % BLOCK_COUNT;

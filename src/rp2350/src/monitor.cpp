@@ -16,7 +16,7 @@ void MonitorTask::run()
     {
         mavlink_message_t msg;
         mavlink_battery_status_t battery;
-        SEGGER_RTT_printf(0, "[%sINFO%s monitor] : Monitor task started.\n", RTT_CTRL_TEXT_GREEN, RTT_CTRL_RESET);
+        log_info("Monitor task started.\n");
         analogReadResolution(12);
         pinMode(24, INPUT);
 
@@ -28,11 +28,13 @@ void MonitorTask::run()
             battery.energy_consumed = -1;
             battery.temperature = INT16_MAX;
             battery.voltages[0] = (uint16_t)(voltage);
-            for(int i=1;i<10;i++){
-                battery.voltages[i]=0;
+            for (int i = 1; i < 10; i++)
+            {
+                battery.voltages[i] = 0;
             }
-            for(int i=0;i<4;i++){
-                battery.voltages_ext[i]=0;
+            for (int i = 0; i < 4; i++)
+            {
+                battery.voltages_ext[i] = 0;
             }
             battery.current_battery = -1;
             battery.id = 0;
@@ -45,19 +47,10 @@ void MonitorTask::run()
             battery.fault_bitmask = 0;
             mavlink_msg_battery_status_encode(config::mavlink::system_id, config::mavlink::component_id, &msg, &battery);
             _publisher.publish(msg, sys_clock::get_timestamp());
-            SEGGER_RTT_printf(0, "[%sINFO%s monitor] : timestamp=%d[msec], voltage=%d[mV], percentage=%d[%%]\n",
-                              RTT_CTRL_TEXT_GREEN, RTT_CTRL_RESET,
-                              millis(), battery.voltages[0], battery.battery_remaining);
+            log_info("timestamp=%d[msec], voltage=%d[mV], percentage=%d[%%]\n",
+                     millis(), battery.voltages[0], battery.battery_remaining);
 
             vTaskDelay(1000 / portTICK_PERIOD_MS); // 1秒ごとにログを出力
         }
     }
 }
-namespace monitor
-{
-    /// @brief ログの状態を表す構造体
-    void task(void *pvParam)
-    {
-    }
-
-} // namespace monitor
