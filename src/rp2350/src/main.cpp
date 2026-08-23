@@ -13,8 +13,8 @@
 #include "clock.h"
 #include "config.hpp"
 
-Consumer usd_consumer(100);
-Consumer canbus_consumer(10);
+Subscriber usd_consumer(100);
+Subscriber canbus_consumer(10);
 uSDTask usd_task(usd_consumer);
 IMUTask imu_task;
 GNSSTask gnss_task;

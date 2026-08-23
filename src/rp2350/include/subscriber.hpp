@@ -5,10 +5,10 @@
 #include <mavlink/swingby/mavlink.h>
 #include<string.h>
 
-class Consumer
+class Subscriber
 {
 public:
-    explicit Consumer(size_t size){
+    explicit Subscriber(size_t size){
         queue_=xQueueCreate(size,sizeof(mavlink_message_t)+8);
     }
 

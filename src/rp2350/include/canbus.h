@@ -1,14 +1,14 @@
 #pragma once
 
 #include "task.hpp"
-#include "consumer.hpp"
+#include "subscriber.hpp"
 
 #include <Arduino.h>
 
 class CANBusTask : public Task
 {
 public:
-    CANBusTask(Consumer consumer)
+    CANBusTask(Subscriber consumer)
         : Task({
               .name = "CANBus",
               .stack_size = 512,
@@ -24,5 +24,5 @@ protected:
 private:
     void onPacketReceived(const mavlink_message_t &msg);
 
-    Consumer _consumer;
+    Subscriber _consumer;
 };

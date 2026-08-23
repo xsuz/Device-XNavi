@@ -16,7 +16,7 @@ public:
     {
     }
 
-    void subscribe(Consumer &consumer)
+    void subscribe(Subscriber &consumer)
     {
         _publisher.subscribe(consumer);
     }

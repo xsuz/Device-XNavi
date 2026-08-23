@@ -35,7 +35,7 @@ void CANBusTask::run()
                 onPacketReceived(msg);
             }
         }
-        if (_consumer.receive(msg, timestamp))
+        if (_consumer.receive(msg, timestamp,1))
         {
             uint8_t buffer[MAVLINK_MAX_PACKET_LEN];
             size_t len = mavlink_msg_to_send_buffer(buffer, &msg);

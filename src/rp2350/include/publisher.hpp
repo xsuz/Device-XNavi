@@ -1,13 +1,13 @@
 #pragma once
 
 #include<array>
-#include"consumer.hpp"
+#include"subscriber.hpp"
 
 class Publisher {
 public:
     static constexpr size_t MaxConsumers = 4;
 
-    bool subscribe(Consumer& consumer)
+    bool subscribe(Subscriber& consumer)
     {
         if (count_ >= MaxConsumers) {
             return false;
@@ -25,6 +25,6 @@ public:
     }
 
 private:
-    std::array<Consumer*, MaxConsumers> consumers_{};
+    std::array<Subscriber*, MaxConsumers> consumers_{};
     size_t count_{0};
 };

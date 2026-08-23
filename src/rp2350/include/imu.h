@@ -13,7 +13,7 @@ class IMUTask : public Task
 {
 public:
     IMUTask() : Task({.name = "IMU", .stack_size = 512, .priority = 3}), _publisher() {}
-    void subscribe(Consumer &consumer)
+    void subscribe(Subscriber &consumer)
     {
         _publisher.subscribe(consumer);
     }

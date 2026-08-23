@@ -4,12 +4,12 @@
 #include <stddef.h>
 
 #include "task.hpp"
-#include "consumer.hpp"
+#include "subscriber.hpp"
 
 class uSDTask : public Task
 {
 public:
-    uSDTask(Consumer consumer)
+    uSDTask(Subscriber consumer)
         : Task({
               .name = "uSD",
               .stack_size = 1024,
@@ -30,7 +30,7 @@ private:
     void inline write_record(const uint8_t *buffer, size_t size);
     size_t inline available_ring_buffer_size_unsafe();
 
-    Consumer _consumer;
+    Subscriber _consumer;
 
     static constexpr int LED = 10; // Use built-in LED for status indication
 
