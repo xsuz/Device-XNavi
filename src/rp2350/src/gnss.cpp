@@ -30,6 +30,9 @@ void GNSSTask::run()
 
     setup_gnss();
 
+    pinMode(LED, OUTPUT);
+    digitalWrite(LED, LOW);
+
     ubx_parser.set_callback_NAV_PVT(GNSSTask::callback_pvt, this);
     ubx_parser.set_callback_reset(GNSSTask::callback_reset, this);
 

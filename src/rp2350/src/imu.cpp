@@ -28,8 +28,8 @@ namespace
     volatile uint32_t imu_queue_overflow = 0;
     float quat[4] = {1.0f, 0.0f, 0.0f, 0.0f};
     constexpr float deg2rad = M_PI / 180.0f;
-    constexpr float acc_sensitivity = 1e3 * ASM330LHH_ACC_SENSITIVITY_FS_2G * 0.00980665f;            // mm/s^2
-    constexpr float gyro_sensitivity = 1e3 * ASM330LHH_GYRO_SENSITIVITY_FS_125DPS * 0.001f * deg2rad; // mrad/s
+    constexpr float acc_sensitivity = ASM330LHH_ACC_SENSITIVITY_FS_2G * 0.00980665f;            // mm/s^2
+    constexpr float gyro_sensitivity = ASM330LHH_GYRO_SENSITIVITY_FS_125DPS * 0.001f * deg2rad; // mrad/s
 }
 
 void IMUTask::run()
@@ -78,12 +78,12 @@ void IMUTask::run()
         asm330lhh.Get_X_AxesRaw(acc);
         asm330lhh.Get_G_AxesRaw(gyr);
         imu_msg.time_boot_ms = millis();
-        imu_msg.xacc = (int16_t)(acc[0] * acc_sensitivity);   // a_x(m/s^2)
-        imu_msg.yacc = (int16_t)(acc[1] * acc_sensitivity);   // a_y(m/s^2)
-        imu_msg.zacc = (int16_t)(acc[2] * acc_sensitivity);   // a_z(m/s^2)
-        imu_msg.xgyro = (int16_t)(gyr[0] * gyro_sensitivity); // // w_x(rad/s)
-        imu_msg.ygyro = (int16_t)(gyr[1] * gyro_sensitivity); // // w_y(rad/s)
-        imu_msg.zgyro = (int16_t)(gyr[2] * gyro_sensitivity); // // w_z(rad/s)
+        imu_msg.xacc = float(acc[0]) * acc_sensitivity;   // a_x(m/s^2)
+        imu_msg.yacc = float(acc[1]) * acc_sensitivity;   // a_y(m/s^2)
+        imu_msg.zacc = float(acc[2]) * acc_sensitivity;   // a_z(m/s^2)
+        imu_msg.xgyro = float(gyr[0]) * gyro_sensitivity; // // w_x(rad/s)
+        imu_msg.ygyro = float(gyr[1]) * gyro_sensitivity; // // w_y(rad/s)
+        imu_msg.zgyro = float(gyr[2]) * gyro_sensitivity; // // w_z(rad/s)
 
         mavlink_msg_imu_encode(config::mavlink::system_id, config::mavlink::component_id, &msg, &imu_msg);
         _publisher.publish(msg, utc);
