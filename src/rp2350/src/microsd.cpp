@@ -28,7 +28,7 @@ void uSDTask::run()
 
     while ((res = f_mount(&fs, "/", 0)) != FR_OK)
     {
-        if (_consumer.receive(msg, timestamp, 10))
+        if (_subscriber.receive(msg, timestamp, 10))
         {
             log_error("Failed to mount SD card, retrying...\n");
             digitalWrite(LED, HIGH);
@@ -40,7 +40,7 @@ void uSDTask::run()
 
     while (!sys_clock::is_valid())
     {
-        if (_consumer.receive(msg, timestamp, 9))
+        if (_subscriber.receive(msg, timestamp, 9))
         {
             digitalWrite(LED, HIGH);
             vTaskDelay(1);
@@ -53,7 +53,7 @@ void uSDTask::run()
 
     while ((res = f_open(&fil, filename, FA_WRITE | FA_CREATE_ALWAYS)) != FR_OK)
     {
-        if (_consumer.receive(msg, timestamp, 100))
+        if (_subscriber.receive(msg, timestamp, 100))
         {
             log_error("Failed to open file %s, retrying...\n", filename);
         }
@@ -62,7 +62,7 @@ void uSDTask::run()
     f_sync(&fil);
     while (1)
     {
-        if (_consumer.receive(msg, timestamp, 1))
+        if (_subscriber.receive(msg, timestamp, 1))
         {
             write_pkt(msg, timestamp);
         }

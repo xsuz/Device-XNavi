@@ -13,9 +13,9 @@ class IMUTask : public Task
 {
 public:
     IMUTask() : Task({.name = "IMU", .stack_size = 512, .priority = 3}), _publisher() {}
-    void subscribe(Subscriber &consumer)
+    void add_subscriber(Subscriber &subscriber)
     {
-        _publisher.subscribe(consumer);
+        _publisher.add_subscriber(subscriber);
     }
 
 protected:

@@ -9,13 +9,13 @@
 class uSDTask : public Task
 {
 public:
-    uSDTask(Subscriber consumer)
+    uSDTask(Subscriber subscriber)
         : Task({
               .name = "uSD",
               .stack_size = 1024,
               .priority = 1,
           }),
-          _consumer{consumer}
+          _subscriber{subscriber}
     {
     }
 
@@ -30,7 +30,7 @@ private:
     void inline write_record(const uint8_t *buffer, size_t size);
     size_t inline available_ring_buffer_size_unsafe();
 
-    Subscriber _consumer;
+    Subscriber _subscriber;
 
     static constexpr int LED = 10; // Use built-in LED for status indication
 

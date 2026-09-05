@@ -136,12 +136,13 @@ void default_task(void *argument)
         if (xQueueReceive(xQueueCANPacketHandle, &canfd_msg, 5) == pdTRUE)
         {
             HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
-            SEGGER_RTT_printf(0, "Received CAN message: id=0x%X size=%d data=[ ", canfd_msg.id, canfd_msg.len);
-            for (size_t i = 0; i < canfd_msg.len; i++)
-            {
-                SEGGER_RTT_printf(0, "0x%02X ", canfd_msg.data[i]);
-            }
-            SEGGER_RTT_printf(0, "]\n");
+            SEGGER_RTT_printf(0, "[%sINFO%s default_task] Received CAN message: id=0x%X size=%d\n",RTT_CTRL_TEXT_GREEN,RTT_CTRL_RESET, canfd_msg.id, canfd_msg.len);
+            // SEGGER_RTT_printf(0, "[%sINFO%s default_task] Received CAN message: id=0x%X size=%d data=[ ",RTT_CTRL_TEXT_GREEN,RTT_CTRL_RESET, canfd_msg.id, canfd_msg.len);
+            // for (size_t i = 0; i < canfd_msg.len; i++)
+            // {
+            //     SEGGER_RTT_printf(0, "0x%02X ", canfd_msg.data[i]);
+            // }
+            // SEGGER_RTT_printf(0, "]\n");
             mavlink_msg_canfd_frame_encode(1, 1, &msg, &canfd_msg);
             uint8_t encoded_data[MAVLINK_MAX_PACKET_LEN];
             size_t size = mavlink_msg_to_send_buffer(encoded_data, &msg);
@@ -165,26 +166,17 @@ void decoding_task(void *argument)
     /* Infinite loop */
     SEGGER_RTT_printf(0, "UART Polling Task started\n");
 
-    uint32_t t_threshold = HAL_GetTick() + uart2::USART_RX_BUFFSIZE;
     for (;;)
     {
         while (uart2::available())
         {
             mavlink_message_t msg;
-            t_threshold = HAL_GetTick() + uart2::USART_RX_BUFFSIZE;
             if (mavlink_parse_char(MAVLINK_COMM_0, uart2::read(), &msg, NULL))
             {
-                SEGGER_RTT_printf(0, "[%sINFO%s decoding_task] recieved msg (msgid=0x%02x,sysid=0x%02x,compid=0x%02x\n", RTT_CTRL_TEXT_GREEN, RTT_CTRL_RESET, msg.msgid, msg.sysid, msg.compid);
+                SEGGER_RTT_printf(0, "[%sINFO%s decoding_task] recieved msg (msgid=0x%02x,sysid=0x%02x,compid=0x%02x)\n", RTT_CTRL_TEXT_GREEN, RTT_CTRL_RESET, msg.msgid, msg.sysid, msg.compid);
                 send_message_canfd(&msg);
             }
         }
-
-        if (t_threshold < HAL_GetTick())
-        {
-            uart2::refresh();
-            t_threshold = HAL_GetTick() + uart2::USART_RX_BUFFSIZE;
-        }
-
         vTaskDelay(1); // Poll every 1000 ms
     }
     /* USER CODE END cobs_decoding_task */
@@ -234,9 +226,10 @@ void send_message_canfd(const mavlink_message_t *msg)
     }
     if (message_length <= 64 && message_length > 0)
     {
-        SEGGER_RTT_printf(0, "Sending CAN message: id=0x%X size=%d\n ", msg->msgid, message_length);
+        SEGGER_RTT_printf(0, "[%sINFO%s send_message_canfd] Sending CAN message: id=0x%X size=%d\n",RTT_CTRL_TEXT_GREEN,RTT_CTRL_RESET, msg->msgid, message_length);
         if (HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &TxHeader, buffer) != HAL_OK)
         {
+            SEGGER_RTT_printf(0,"[%sERROR%s send_message_canfd] Failed to add message to TxFifoQ\n",RTT_CTRL_TEXT_RED,RTT_CTRL_RESET);
             Error_Handler();
         }
         while (HAL_FDCAN_GetTxFifoFreeLevel(&hfdcan1) != 3)
@@ -244,7 +237,7 @@ void send_message_canfd(const mavlink_message_t *msg)
     }
     else
     {
-        SEGGER_RTT_printf(0, "Message too long to send over CAN: id=0x%X size=%d\n ", msg->msgid, message_length);
+        SEGGER_RTT_printf(0, "[%sERROR%s send_message_canfd] Message too long to send over CAN: id=0x%X size=%d\n ",RTT_CTRL_TEXT_RED,RTT_CTRL_RESET, msg->msgid, message_length);
     }
 }
 

@@ -8,13 +8,13 @@
 class CANBusTask : public Task
 {
 public:
-    CANBusTask(Subscriber consumer)
+    CANBusTask(Subscriber subscriber)
         : Task({
               .name = "CANBus",
               .stack_size = 512,
               .priority = 1,
           }),
-          _consumer{consumer}
+          _subscriber{subscriber}
     {
     }
 
@@ -24,5 +24,5 @@ protected:
 private:
     void onPacketReceived(const mavlink_message_t &msg);
 
-    Subscriber _consumer;
+    Subscriber _subscriber;
 };

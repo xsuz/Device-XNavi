@@ -17,9 +17,9 @@ public:
             _publisher()
     {
     }
-    void subscribe(Subscriber &consumer)
+    void add_subscriber(Subscriber &subscriber)
     {
-        _publisher.subscribe(consumer);
+        _publisher.add_subscriber(subscriber);
     }
 
 protected:

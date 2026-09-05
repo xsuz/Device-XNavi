@@ -13,13 +13,13 @@
 #include "clock.h"
 #include "config.hpp"
 
-Subscriber usd_consumer(100);
-Subscriber canbus_consumer(10);
-uSDTask usd_task(usd_consumer);
+Subscriber usd_subscriber(100);
+Subscriber canbus_subscriber(10);
+uSDTask usd_task(usd_subscriber);
 IMUTask imu_task;
 GNSSTask gnss_task;
 MonitorTask monitor_task;
-CANBusTask canbus_task(canbus_consumer);
+CANBusTask canbus_task(canbus_subscriber);
 
 void setup()
 {
@@ -27,13 +27,13 @@ void setup()
     SEGGER_RTT_Init();
     SEGGER_RTT_printf(0, "\n[%sINFO%s root] : power on\n", RTT_CTRL_TEXT_GREEN, RTT_CTRL_RESET);
 
-    imu_task.subscribe(usd_consumer);
-    monitor_task.subscribe(usd_consumer);
-    gnss_task.subscribe(usd_consumer);
+    imu_task.add_subscriber(usd_subscriber);
+    monitor_task.add_subscriber(usd_subscriber);
+    gnss_task.add_subscriber(usd_subscriber);
 
-    // imu_task.subscribe(canbus_consumer);
-    monitor_task.subscribe(canbus_consumer);
-    gnss_task.subscribe(canbus_consumer);
+    // imu_task.add_subscriber(canbus_subscriber);
+    monitor_task.add_subscriber(canbus_subscriber);
+    gnss_task.add_subscriber(canbus_subscriber);
 
     imu_task.start();
     monitor_task.start();
@@ -55,7 +55,7 @@ void loop()
     heartbeat.system_status = MAV_STATE::MAV_STATE_ACTIVE;
     heartbeat.type = MAV_TYPE::MAV_TYPE_GENERIC;
     mavlink_msg_heartbeat_encode(config::mavlink::system_id, config::mavlink::component_id, &msg, &heartbeat);
-    canbus_consumer.push(msg,sys_clock::get_timestamp());
+    canbus_subscriber.push(msg,sys_clock::get_timestamp());
     vTaskDelay(1000);
 }
 

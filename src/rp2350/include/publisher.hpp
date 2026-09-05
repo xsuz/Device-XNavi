@@ -5,26 +5,26 @@
 
 class Publisher {
 public:
-    static constexpr size_t MaxConsumers = 4;
+    static constexpr size_t MaxSubscribers = 4;
 
-    bool subscribe(Subscriber& consumer)
+    bool add_subscriber(Subscriber& subscriber)
     {
-        if (count_ >= MaxConsumers) {
+        if (count_ >= MaxSubscribers) {
             return false;
         }
 
-        consumers_[count_++] = &consumer;
+        _subscribers[count_++] = &subscriber;
         return true;
     }
 
     void publish(const mavlink_message_t& message,int64_t timestamp,TickType_t timeout=0)
     {
         for (size_t i = 0; i < count_; ++i) {
-            consumers_[i]->push(message,timestamp,timeout);
+            _subscribers[i]->push(message,timestamp,timeout);
         }
     }
 
 private:
-    std::array<Subscriber*, MaxConsumers> consumers_{};
+    std::array<Subscriber*, MaxSubscribers> _subscribers{};
     size_t count_{0};
 };
