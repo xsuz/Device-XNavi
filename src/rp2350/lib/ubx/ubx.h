@@ -23,9 +23,18 @@ namespace ubx
             }
         }
 
-        void (*callbackPVT)(NAV_PVT) = nullptr;
-        
-        void (*callbackReset)(void) = nullptr;
+        using callback_NAV_PVT_t = void (*)(NAV_PVT,void*);
+        using callback_reset_t =  void(*)(void*);
+
+        void set_callback_NAV_PVT(callback_NAV_PVT_t callback,void* context){
+            callback_nav_pvt = callback;
+            context_callback_nav_pvt = context;
+        }
+
+        void set_callback_reset(callback_reset_t callback,void* context){
+            callback_reset = callback;
+            context_callback_reset = context; 
+        }
 
     private:
         uint8_t buf[1024];
@@ -61,5 +70,10 @@ namespace ubx
             NAV_PVT nav_pvt;
             uint8_t bytes[sizeof(NAV_PVT)];
         } nav_pvt_data;
+
+        callback_NAV_PVT_t callback_nav_pvt = nullptr;
+        void* context_callback_nav_pvt = nullptr;
+        callback_reset_t callback_reset = nullptr;
+        void* context_callback_reset = nullptr;
     };
 } // namespace ubx

@@ -3,14 +3,24 @@
 #include <timers.h>
 #include <queue.h>
 
-namespace imu{
-    constexpr int delta_t = 4;
+#include <ASM330LHHSensor.h>
+#include <SPI.h>
 
-    /// @brief IMUによるKalman Filterの更新タスク
-    /// @param pvParam 
-    void task(void* pvParam);
-    
-    /// @brief IMUのサンプリング処理
-    /// @param xTimer 
-    void timer_callback(TimerHandle_t xTimer);
-}
+#include "task.hpp"
+#include "publisher.hpp"
+
+class IMUTask : public Task
+{
+public:
+    IMUTask() : Task({.name = "IMU", .stack_size = 512, .priority = 3}), _publisher() {}
+    void add_subscriber(Subscriber &subscriber)
+    {
+        _publisher.add_subscriber(subscriber);
+    }
+
+protected:
+    void run() override;
+
+private:
+    Publisher _publisher;
+};

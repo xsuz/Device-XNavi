@@ -5,47 +5,71 @@
 
 #include <SEGGER_RTT.h>
 
-#include "sd_logger.h"
+#include "microsd.h"
 #include "gnss.h"
 #include "imu.h"
 #include "canbus.h"
 #include "monitor.h"
 #include "clock.h"
+#include "config.hpp"
 
-TaskHandle_t Task1;
-TaskHandle_t Task2;
-TaskHandle_t Task3;
-TaskHandle_t Task4;
-TaskHandle_t Task5;
+Subscriber usd_subscriber(100);
+Subscriber canbus_subscriber(10);
+uSDTask usd_task(usd_subscriber);
+IMUTask imu_task;
+GNSSTask gnss_task;
+MonitorTask monitor_task;
+CANBusTask canbus_task(canbus_subscriber);
 
 void setup()
 {
     // put your setup code here, to run once:
     SEGGER_RTT_Init();
-    SEGGER_RTT_printf(0,"\n[%sINFO%s xnavi] : power on\n",RTT_CTRL_TEXT_GREEN,RTT_CTRL_RESET);
+    SEGGER_RTT_printf(0, "\n[%sINFO%s root] : power on\n", RTT_CTRL_TEXT_GREEN, RTT_CTRL_RESET);
 
-    xTaskCreate(gnss::task,"gps",512,NULL,4,&Task1);
-    xTaskCreate(imu::task,"imu",256,NULL,3,&Task2);
-    xTaskCreate(sd_logger::task,"sd",256,NULL,1,&Task3);
-    xTaskCreate(canbus::task,"twelite",256,NULL,2,&Task4);
-    xTaskCreate(monitor::task,"monitor",256,NULL,2,&Task5);
+    imu_task.add_subscriber(usd_subscriber);
+    monitor_task.add_subscriber(usd_subscriber);
+    gnss_task.add_subscriber(usd_subscriber);
+
+    // imu_task.add_subscriber(canbus_subscriber);
+    monitor_task.add_subscriber(canbus_subscriber);
+    gnss_task.add_subscriber(canbus_subscriber);
+
+    imu_task.start();
+    monitor_task.start();
+    gnss_task.start();
+    usd_task.start();
+    canbus_task.start();
     // vTaskStartScheduler();
 }
 
 void loop()
 {
     // put your main code here, to run repeatedly:
+    mavlink_message_t msg;
+    mavlink_heartbeat_t heartbeat;
+    heartbeat.autopilot = MAV_AUTOPILOT::MAV_AUTOPILOT_GENERIC;
+    heartbeat.base_mode = MAV_MODE::MAV_MODE_PREFLIGHT;
+    heartbeat.custom_mode = 0;
+    heartbeat.mavlink_version = 3;
+    heartbeat.system_status = MAV_STATE::MAV_STATE_ACTIVE;
+    heartbeat.type = MAV_TYPE::MAV_TYPE_GENERIC;
+    mavlink_msg_heartbeat_encode(config::mavlink::system_id, config::mavlink::component_id, &msg, &heartbeat);
+    canbus_subscriber.push(msg,sys_clock::get_timestamp());
+    vTaskDelay(1000);
 }
 
 // std::map<eTaskState, const char *> eTaskStateName { {eReady, "Ready"}, { eRunning, "Running" }, {eBlocked, "Blocked"}, {eSuspended, "Suspended"}, {eDeleted, "Deleted"} };
 
-void setup1(){
-    
+void setup1()
+{
+
     // TWELITEのUARTを初期化
     pinMode(LED_BUILTIN, OUTPUT);
 }
 
-void loop1(){
+void loop1()
+{
     // int tasks = uxTaskGetNumberOfTasks();
     // unsigned long runtime;
     // TaskStatus_t *pxTaskStatusArray= (TaskStatus_t *) pvPortMalloc(tasks * sizeof(TaskStatus_t));

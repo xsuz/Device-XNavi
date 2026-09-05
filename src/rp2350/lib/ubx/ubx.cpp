@@ -105,9 +105,9 @@ void ubx::parser::parse(uint8_t c)
                 {
                     nav_pvt_data.bytes[i] = buf[i];
                 }
-                if (callbackPVT != nullptr)
+                if (callback_nav_pvt != nullptr)
                 {
-                    callbackPVT(nav_pvt_data.nav_pvt);
+                    callback_nav_pvt(nav_pvt_data.nav_pvt,context_callback_nav_pvt);
                 }
             }
             break;
@@ -138,7 +138,7 @@ void ubx::parser::reset()
     {
         buf[i] = 0;
     }
-    if(callbackReset!=nullptr){
-        callbackReset();
+    if(callback_reset!=nullptr){
+        callback_reset(context_callback_reset);
     }
 }

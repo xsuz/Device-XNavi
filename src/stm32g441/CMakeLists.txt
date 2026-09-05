@@ -60,9 +60,26 @@ target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined symbols
 )
 
+add_subdirectory(SEGGER)
+
+include(FetchContent)
+
+FetchContent_Declare(
+    mavlink
+    URL
+        https://github.com/TeammeltingPoppo/mavlink-cpp/releases/download/0.4.1/mavlink-cmake.zip
+    URL_HASH
+        SHA256=89f076428dac47effafd35de223d9e7e8ea0d1a46b8394a703aa3506b457340f
+    DOWNLOAD_EXTRACT_TIMESTAMP
+        TRUE
+)
+
+FetchContent_MakeAvailable(mavlink)
+
 # Add linked libraries
 target_link_libraries(${CMAKE_PROJECT_NAME}
     stm32cubemx
-
+    SEGGER
+    mavlink
     # Add user defined libraries
 )

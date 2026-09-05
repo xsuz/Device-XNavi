@@ -2,67 +2,49 @@
 #include <task.h>
 #include <queue.h>
 #include <Arduino.h>
-#include <PacketSerial.h>
 
 #include "canbus.h"
-#include "sd_logger.h"
 #include "clock.h"
 
 #include <SEGGER_RTT.h>
+#include <mavlink/swingby/mavlink.h>
 
-namespace canbus
+void CANBusTask::run()
 {
-    PacketSerial ps;
-    QueueHandle_t canQueue;
+    log_info("task started.\n");
+    // TWELITEのUARTを初期化
+    log_info("Initializing Serial2 with RX: 9, TX: 8\n");
+    Serial2.setRX(9);
+    Serial2.setTX(8);
+    Serial2.setFIFOSize(1024);
+    Serial2.begin(115200);
+    Serial2.flush();
+    log_info("Serial2 initialized.\n");
 
-    void onPacketReceived(const uint8_t *buffer, size_t size)
+    // TWELITEからのデータ受信ループ
+    while (true)
     {
-        SEGGER_RTT_printf(0, "[%sINFO%s canbus] : size %d [bytes]  packet [ ", RTT_CTRL_TEXT_GREEN,RTT_CTRL_RESET, size);
-        for(int i=0;i<size;i++){
-            SEGGER_RTT_printf(0,"0x%02x ",buffer[i]);
-        }
-        SEGGER_RTT_printf(0,"]\n");
-        sd_logger::write_bytes(buffer, size,sys_clock::get_timestamp());
-    }
-
-    void task(void *pvParam)
-    {
-        SEGGER_RTT_printf(0, "[%sINFO%s canbus] : task started.\n",RTT_CTRL_TEXT_GREEN,RTT_CTRL_RESET);
-        // TWELITEのUARTを初期化
-        SEGGER_RTT_printf(0, "[%sINFO%s canbus] : Initializing Serial2 with RX: 9, TX: 8\n", RTT_CTRL_TEXT_GREEN, RTT_CTRL_RESET);
-        Serial2.setRX(9);
-        Serial2.setTX(8);
-        Serial2.setFIFOSize(1024);
-        Serial2.begin(115200);
-        ps.setStream(&Serial2);
-        Serial2.flush();
-        ps.setPacketHandler(&onPacketReceived);
-        canQueue = xQueueCreate(20, sizeof(DeviceData::CANPacket));
-        SEGGER_RTT_printf(0, "[%sINFO%s canbus] : Serial2 initialized.\n",RTT_CTRL_TEXT_GREEN,RTT_CTRL_RESET);
-
-        // TWELITEからのデータ受信ループ
-        while (true)
+        mavlink_message_t msg;
+        int64_t timestamp;
+        mavlink_status_t status;
+        while (Serial2.available() > 0)
         {
-            ps.update(); // 受信データの更新
-            while (uxQueueMessagesWaiting(canQueue) > 0)
+            uint8_t c = Serial2.read();
+            if (mavlink_parse_char(MAVLINK_COMM_0, c, &msg, &status))
             {
-                union{
-                    DeviceData::CANPacket pkt;
-                    uint8_t raw[sizeof(DeviceData::CANPacket)];
-                } u;
-                if (xQueueReceive(canQueue, &u.raw, 0) == pdTRUE)
-                {
-                    ps.send(u.raw, u.pkt.size+8); // パケットを送信
-                }
+                onPacketReceived(msg);
             }
-            vTaskDelay(1); // CPU負荷を下げるために少し待機
         }
-    }
-    void write_pkt(DeviceData::CANPacket pkt)
-    {
-        if (canQueue != NULL)
+        if (_subscriber.receive(msg, timestamp,1))
         {
-            xQueueSend(canQueue, &pkt, 0);
+            uint8_t buffer[MAVLINK_MAX_PACKET_LEN];
+            size_t len = mavlink_msg_to_send_buffer(buffer, &msg);
+            Serial2.write(buffer, len);
         }
     }
+}
+
+void CANBusTask::onPacketReceived(const mavlink_message_t &msg)
+{
+    log_info("Recieved message (msgid:%d, sysid:%d compid:%d)\n",msg.msgid,msg.sysid,msg.compid);
 }
